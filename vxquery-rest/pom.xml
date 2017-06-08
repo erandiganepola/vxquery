@@ -11,5 +11,11 @@
 
     <artifactId>apache-vxquery-rest</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.hyracks</groupId>
+            <artifactId>hyracks-http</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
