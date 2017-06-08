@@ -16,6 +16,7 @@
  */
 package org.apache.vxquery.runtime.functions.base;
 
+import org.apache.vxquery.datamodel.accessors.ArrayBackedValueStoragePool;
 import org.apache.vxquery.datamodel.accessors.PointablePool;
 import org.apache.vxquery.datamodel.accessors.PointablePoolFactory;
 import org.apache.vxquery.datamodel.accessors.TaggedValuePointable;
@@ -24,6 +25,7 @@ import org.apache.vxquery.exceptions.SystemException;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.runtime.base.IScalarEvaluator;
 import org.apache.hyracks.algebricks.runtime.base.IUnnestingEvaluator;
+import org.apache.hyracks.api.exceptions.HyracksDataException;
 import org.apache.hyracks.dataflow.common.data.accessors.IFrameTupleReference;
 
 public abstract class AbstractTaggedValueArgumentUnnestingEvaluator implements IUnnestingEvaluator {
@@ -32,6 +34,7 @@ public abstract class AbstractTaggedValueArgumentUnnestingEvaluator implements I
     protected final TaggedValuePointable[] tvps;
 
     protected final PointablePool ppool = PointablePoolFactory.INSTANCE.createPointablePool();
+    protected final ArrayBackedValueStoragePool abvsPool = new ArrayBackedValueStoragePool();
 
     public AbstractTaggedValueArgumentUnnestingEvaluator(IScalarEvaluator[] args) {
         this.args = args;
@@ -42,12 +45,12 @@ public abstract class AbstractTaggedValueArgumentUnnestingEvaluator implements I
     }
 
     @Override
-    public final void init(IFrameTupleReference tuple) throws AlgebricksException {
+    public final void init(IFrameTupleReference tuple) throws HyracksDataException {
         for (int i = 0; i < args.length; ++i) {
             args[i].evaluate(tuple, tvps[i]);
         }
         init(tvps);
     }
 
-    protected abstract void init(TaggedValuePointable[] args) throws SystemException;
+    protected abstract void init(TaggedValuePointable[] args) throws HyracksDataException;
 }
