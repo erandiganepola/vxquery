@@ -57,5 +57,5 @@ public abstract class RestAPIServlet extends AbstractServlet {
         HttpUtil.setContentType(response, "application/json");
     }
 
-    protected abstract void doHandle(IServletRequest request, IServletResponse response);
+    protected abstract void doHandle(IServletRequest request, IServletResponse response) throws IOException;
 }

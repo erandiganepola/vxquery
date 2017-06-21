@@ -23,11 +23,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.jboss.resteasy</groupId>
-            <artifactId>resteasy-client</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.vxquery</groupId>
             <artifactId>apache-vxquery-core</artifactId>
             <version>0.7-SNAPSHOT</version>
@@ -83,6 +78,7 @@
             <groupId>org.apache.hyracks</groupId>
             <artifactId>hyracks-hdfs-2.x</artifactId>
         </dependency>
+        
     </dependencies>
 
 </project>

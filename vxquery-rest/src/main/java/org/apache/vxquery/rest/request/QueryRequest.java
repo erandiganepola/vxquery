@@ -16,9 +16,6 @@
  */
 package org.apache.vxquery.rest.request;
 
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * Request to represent a query request coming to the {@link org.apache.vxquery.rest.RestServer}
  *
@@ -46,33 +43,6 @@ public class QueryRequest {
     private boolean showOptimizedExpressionTree = false;
 
     private boolean showRuntimePlan = false;
-
-    /** Number of available processors. (default: java's available processors) */
-    private int availableProcessors = -1;
-    /** IP Address of the ClusterController. */
-    private String clientNetIpAddress = null;
-    /** Port of the ClusterController. (default: 1098) */
-    private int clientNetPort = 1098;
-    /** Number of local node controllers. (default: 1) */
-    private int localNodeControllers = 1;
-    /** Join hash size in bytes. (default: 67,108,864) */
-    private long joinHashSize = -1;
-    /** Maximum possible data size in bytes. (default: 150,323,855,000) */
-    private long maximumDataSize = -1;
-    /** Disk read buffer size in bytes. */
-    private int bufferSize = -1;
-    /** Optimization Level. (default: Full Optimization) */
-    private int optimizationLevel = Integer.MAX_VALUE;
-    /** Show query string */
-    private boolean showQuery;
-    /** File path to save the query result */
-    private String resultFile = "/tmp/result.txt";
-    /** Ignore the first X number of quereies */
-    private int timingIgnoreQueries = 2;
-    /** Bind an external variable */
-    private Map<String, String> bindings = new HashMap<>();
-    /** Directory path to Hadoop configuration files */
-    private String hdfsConf = null;
 
     public String getStatement() {
         return statement;
@@ -152,57 +122,5 @@ public class QueryRequest {
 
     public void setShowMetrics(boolean showMetrics) {
         this.showMetrics = showMetrics;
-    }
-
-    public int getAvailableProcessors() {
-        return availableProcessors;
-    }
-
-    public String getClientNetIpAddress() {
-        return clientNetIpAddress;
-    }
-
-    public int getClientNetPort() {
-        return clientNetPort;
-    }
-
-    public int getLocalNodeControllers() {
-        return localNodeControllers;
-    }
-
-    public long getJoinHashSize() {
-        return joinHashSize;
-    }
-
-    public long getMaximumDataSize() {
-        return maximumDataSize;
-    }
-
-    public int getBufferSize() {
-        return bufferSize;
-    }
-
-    public int getOptimizationLevel() {
-        return optimizationLevel;
-    }
-
-    public boolean isShowQuery() {
-        return showQuery;
-    }
-
-    public String getResultFile() {
-        return resultFile;
-    }
-
-    public int getTimingIgnoreQueries() {
-        return timingIgnoreQueries;
-    }
-
-    public Map<String, String> getBindings() {
-        return bindings;
-    }
-
-    public String getHdfsConf() {
-        return hdfsConf;
     }
 }

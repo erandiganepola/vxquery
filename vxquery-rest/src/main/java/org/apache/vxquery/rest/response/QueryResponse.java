@@ -24,6 +24,15 @@ package org.apache.vxquery.rest.response;
 public class QueryResponse {
 
     private long resultId;
+    private String requestId;
+    private String status;
+    private String resultUrl;
+    private String statement;
+    private String abstractSyntaxTree;
+    private String translatedExpressionTree;
+    private String optimizedExpressionTree;
+    private String runtimePlan;
+    private Metrics metrics = new Metrics();
 
     public long getResultId() {
         return resultId;
@@ -31,5 +40,77 @@ public class QueryResponse {
 
     public void setResultId(long resultId) {
         this.resultId = resultId;
+    }
+
+    public String getRequestId() {
+        return requestId;
+    }
+
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getResultUrl() {
+        return resultUrl;
+    }
+
+    public void setResultUrl(String resultUrl) {
+        this.resultUrl = resultUrl;
+    }
+
+    public String getStatement() {
+        return statement;
+    }
+
+    public void setStatement(String statement) {
+        this.statement = statement;
+    }
+
+    public String getAbstractSyntaxTree() {
+        return abstractSyntaxTree;
+    }
+
+    public void setAbstractSyntaxTree(String abstractSyntaxTree) {
+        this.abstractSyntaxTree = abstractSyntaxTree;
+    }
+
+    public String getTranslatedExpressionTree() {
+        return translatedExpressionTree;
+    }
+
+    public void setTranslatedExpressionTree(String translatedExpressionTree) {
+        this.translatedExpressionTree = translatedExpressionTree;
+    }
+
+    public String getOptimizedExpressionTree() {
+        return optimizedExpressionTree;
+    }
+
+    public void setOptimizedExpressionTree(String optimizedExpressionTree) {
+        this.optimizedExpressionTree = optimizedExpressionTree;
+    }
+
+    public String getRuntimePlan() {
+        return runtimePlan;
+    }
+
+    public void setRuntimePlan(String runtimePlan) {
+        this.runtimePlan = runtimePlan;
+    }
+
+    public Metrics getMetrics() {
+        return metrics;
+    }
+
+    public void setMetrics(Metrics metrics) {
+        this.metrics = metrics;
     }
 }

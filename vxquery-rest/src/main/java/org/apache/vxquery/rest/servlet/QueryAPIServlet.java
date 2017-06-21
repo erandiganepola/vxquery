@@ -16,12 +16,14 @@
  */
 package org.apache.vxquery.rest.servlet;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hyracks.http.api.IServletRequest;
 import org.apache.hyracks.http.api.IServletResponse;
-import org.apache.vxquery.rest.VXQuery;
+import org.apache.vxquery.rest.core.VXQuery;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.QueryResponse;
 
+import java.io.IOException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
@@ -32,23 +34,30 @@ import java.util.logging.Level;
  */
 public class QueryAPIServlet extends RestAPIServlet {
 
-    public QueryAPIServlet(ConcurrentMap<String, Object> ctx, String... paths) {
+    private VXQuery vxQuery;
+
+    public QueryAPIServlet(VXQuery vxQuery, ConcurrentMap<String, Object> ctx, String... paths) {
         super(ctx, paths);
+        this.vxQuery = vxQuery;
     }
 
     @Override
-    protected void doHandle(IServletRequest request, IServletResponse response) {
+    protected void doHandle(IServletRequest request, IServletResponse response) throws IOException {
         LOGGER.log(Level.INFO, String.format("Received a query request with query : %s", request.getParameter("statement")));
 
         QueryRequest queryRequest = getQueryRequest(request);
-        QueryResponse queryResponse = new QueryResponse();
-        VXQuery vxQuery = new VXQuery(queryRequest, queryResponse);
+        QueryResponse queryResponse = null;
         try {
-            vxQuery.execute();
+            queryResponse = vxQuery.execute(queryRequest);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when trying to execute query : " + queryRequest.getStatement(), e);
             throw new IllegalArgumentException("Unable to execute the query given", e);
         }
+
+        ObjectMapper jsonMapper = new ObjectMapper();
+        String jsonString = jsonMapper.writeValueAsString(queryResponse);
+        LOGGER.info(String.format("Query response : %s", jsonString));
+        response.writer().print(jsonString);
     }
 
     private QueryRequest getQueryRequest(IServletRequest request) {
