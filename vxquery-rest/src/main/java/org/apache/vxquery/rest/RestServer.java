@@ -22,6 +22,7 @@ import org.apache.hyracks.http.server.WebManager;
 import org.apache.vxquery.rest.core.VXQuery;
 import org.apache.vxquery.rest.core.VXQueryConfig;
 import org.apache.vxquery.rest.servlet.QueryAPIServlet;
+import org.apache.vxquery.rest.servlet.QueryResultAPIServlet;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -30,6 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
+import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
 /**
  * REST Server class responsible for starting a new server on a given port.
@@ -49,6 +51,7 @@ public class RestServer {
         webManager = new WebManager();
         HttpServer restServer = new HttpServer(webManager.getBosses(), webManager.getWorkers(), 8085);
         restServer.addServlet(new QueryAPIServlet(vxQuery, restServer.ctx(), QUERY_ENDPOINT));
+        restServer.addServlet(new QueryResultAPIServlet(vxQuery, restServer.ctx(), QUERY_RESULT_ENDPOINT));
         webManager.add(restServer);
     }
 

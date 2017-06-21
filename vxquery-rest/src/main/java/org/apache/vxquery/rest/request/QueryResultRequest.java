@@ -15,24 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest;
+package org.apache.vxquery.rest.request;
 
-public class Constants {
+/**
+ * Request to represent a query request coming to the {@link org.apache.vxquery.rest.RestServer}
+ *
+ * @author Erandi Ganepola
+ */
+public class QueryResultRequest {
 
-    private Constants() {
+    private long resultId;
+    private boolean metrics = false;
+
+    public long getResultId() {
+        return resultId;
     }
 
-    public class URLs {
-        public static final String BASE_PATH = "/vxquery";
-
-        public static final String QUERY_ENDPOINT = BASE_PATH + "/query";
-        public static final String QUERY_RESULT_ENDPOINT = BASE_PATH + "/query/result/*";
+    public void setResultId(long resultId) {
+        this.resultId = resultId;
     }
 
-    public class Properties {
-        public static final String VXQUERY_PROPERTIES_FILE = "vxquery.properties";
+    public boolean isMetrics() {
+        return metrics;
+    }
 
-        public static final String HYRACKS_CLIENT_IP = "vxquery.hyracks.client_ip";
-        public static final String HYRACKS_CLIENT_PORT = "vxquery.hyracks.client_port";
+    public void setMetrics(boolean metrics) {
+        this.metrics = metrics;
     }
 }
