@@ -30,8 +30,6 @@ public class VXQueryConfig {
     private long joinHashSize = -1;
     /** Maximum possible data size in bytes. (default: 150,323,855,000) */
     private long maximumDataSize = -1;
-    /** Ignore the first X number of quereies */
-    private int timingIgnoreQueries = 2;
     /** Bind an external variable */
     private Map<String, String> bindings = new HashMap<>();
     /** Directory path to Hadoop configuration files */
@@ -67,14 +65,6 @@ public class VXQueryConfig {
 
     public void setMaximumDataSize(long maximumDataSize) {
         this.maximumDataSize = maximumDataSize;
-    }
-
-    public int getTimingIgnoreQueries() {
-        return timingIgnoreQueries;
-    }
-
-    public void setTimingIgnoreQueries(int timingIgnoreQueries) {
-        this.timingIgnoreQueries = timingIgnoreQueries;
     }
 
     public Map<String, String> getBindings() {

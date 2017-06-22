@@ -38,6 +38,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.logging.Logger;
 
+import static org.apache.vxquery.rest.Constants.Parameters.*;
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
 
 public class RestServerTest {
@@ -68,7 +69,11 @@ public class RestServerTest {
                 .setHost("localhost")
                 .setPort(8085)
                 .setPath(QUERY_ENDPOINT)
-                .addParameter("statement", QUERY)
+                .addParameter(STATEMENT, QUERY)
+                .addParameter(SHOW_AST, "true")
+                .addParameter(SHOW_TET, "true")
+                .addParameter(SHOW_OET, "true")
+                .addParameter(SHOW_RP, "true")
                 .build();
 
         HttpGet request = new HttpGet(uri);

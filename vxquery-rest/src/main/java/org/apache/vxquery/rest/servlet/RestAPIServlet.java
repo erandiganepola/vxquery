@@ -44,6 +44,9 @@ public abstract class RestAPIServlet extends AbstractServlet {
 
     protected final void get(IServletRequest request, IServletResponse response) {
         try {
+            // enable cross-origin resource sharing
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            response.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
             initResponse(request, response);
             doHandle(request, response);
         } catch (IOException e) {

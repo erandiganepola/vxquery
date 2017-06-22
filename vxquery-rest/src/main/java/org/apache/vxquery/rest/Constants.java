@@ -22,6 +22,19 @@ public class Constants {
     private Constants() {
     }
 
+    public class Parameters {
+        public static final String STATEMENT = "statement";
+        public static final String COMPILE_ONLY = "compileOnly";
+        public static final String OPTIMIZATION = "optimization";
+        public static final String FRAME_SIZE = "frameSize";
+        public static final String REPEAT_EXECUTIONS = "repeatExecutions";
+        public static final String METRICS = "metrics";
+        public static final String SHOW_AST = "showAbstractSyntaxTree";
+        public static final String SHOW_TET = "showTranslatedExpressionTree";
+        public static final String SHOW_OET = "showOptimizedExpressionTree";
+        public static final String SHOW_RP = "showRuntimePlan";
+    }
+
     public class URLs {
         public static final String BASE_PATH = "/vxquery";
 

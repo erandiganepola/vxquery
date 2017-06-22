@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
+import static org.apache.vxquery.rest.Constants.Parameters.*;
+
 /**
  * Servlet to handle query requests.
  *
@@ -61,12 +63,29 @@ public class QueryAPIServlet extends RestAPIServlet {
     }
 
     private QueryRequest getQueryRequest(IServletRequest request) {
-        if (request.getParameter("statement") == null) {
+        if (request.getParameter(STATEMENT) == null) {
             throw new IllegalArgumentException("Parameter 'statement' is required to handle the request");
         }
 
         QueryRequest queryRequest = new QueryRequest();
-        queryRequest.setStatement(request.getParameter("statement"));
+        queryRequest.setStatement(request.getParameter(STATEMENT));
+        queryRequest.setCompileOnly("true".equals(request.getParameter(COMPILE_ONLY)));
+        queryRequest.setShowMetrics("true".equals(request.getParameter(METRICS)));
+
+        queryRequest.setShowAbstractSyntaxTree("true".equals(request.getParameter(SHOW_AST)));
+        queryRequest.setShowTranslatedExpressionTree("true".equals(request.getParameter(SHOW_TET)));
+        queryRequest.setShowOptimizedExpressionTree("true".equals(request.getParameter(SHOW_OET)));
+        queryRequest.setShowRuntimePlan("true".equals(request.getParameter(SHOW_RP)));
+
+        if (request.getParameter(OPTIMIZATION) != null) {
+            queryRequest.setOptimization(Integer.parseInt(request.getParameter(OPTIMIZATION)));
+        }
+        if (request.getParameter(FRAME_SIZE) != null) {
+            queryRequest.setFrameSize(Integer.parseInt(request.getParameter(FRAME_SIZE)));
+        }
+        if (request.getParameter(REPEAT_EXECUTIONS) != null) {
+            queryRequest.setRepeatExecutions(Integer.parseInt(request.getParameter(REPEAT_EXECUTIONS)));
+        }
 
         return queryRequest;
     }
