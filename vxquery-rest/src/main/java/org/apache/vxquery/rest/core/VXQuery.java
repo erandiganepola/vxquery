@@ -52,7 +52,7 @@ import org.apache.vxquery.context.StaticContextImpl;
 import org.apache.vxquery.exceptions.SystemException;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.QueryResponse;
-import org.apache.vxquery.rest.response.QueryResult;
+import org.apache.vxquery.rest.response.QueryResultResponse;
 import org.apache.vxquery.result.ResultUtils;
 import org.apache.vxquery.xmlquery.ast.ModuleNode;
 import org.apache.vxquery.xmlquery.query.Module;
@@ -86,7 +86,7 @@ public class VXQuery {
     private VXQueryConfig vxQueryConfig;
     private ExecutorService workers;
 
-    private Map<Long, QueryResult> resultMap = new ConcurrentHashMap<>();
+    private Map<Long, QueryResultResponse> resultMap = new ConcurrentHashMap<>();
 
     private IHyracksClientConnection hyracksClientConnection;
     private HyracksDataset hyracksDataset;
@@ -240,7 +240,7 @@ public class VXQuery {
         workers.submit(new Runnable() {
             @Override
             public void run() {
-                QueryResult result = new QueryResult();
+                QueryResultResponse result = new QueryResultResponse();
                 result.setRequestId(response.getRequestId());
                 result.setStatus(Status.SUCCESS.toString());
                 resultMap.put(response.getResultId(), result);
@@ -317,7 +317,7 @@ public class VXQuery {
      * @param resultId ID of the result set
      * @return query result
      */
-    public QueryResult getResult(long resultId) {
+    public QueryResultResponse getResult(long resultId) {
         if (resultMap.containsKey(resultId) && resultMap.get(resultId).getResults() != null) {
             return resultMap.get(resultId);
         }

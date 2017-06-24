@@ -17,16 +17,11 @@
 
 package org.apache.vxquery.rest.response;
 
-/**
- * Resource class to represent a response to a given user queryresult
- *
- * @author Erandi Ganepola
- */
 public class QueryResultResponse {
     private String requestId;
     private String status;
     private String results;
-    private Metrics metrics=new Metrics();
+    private Metrics metrics = new Metrics();
 
     public String getRequestId() {
         return requestId;
