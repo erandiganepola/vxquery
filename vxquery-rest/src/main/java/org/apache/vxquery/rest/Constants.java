@@ -24,6 +24,7 @@ public class Constants {
 
     public class Parameters {
         public static final String STATEMENT = "statement";
+        public static final String RESULT_ID = "resultId ";
         public static final String COMPILE_ONLY = "compileOnly";
         public static final String OPTIMIZATION = "optimization";
         public static final String FRAME_SIZE = "frameSize";
@@ -48,4 +49,7 @@ public class Constants {
         public static final String HYRACKS_CLIENT_IP = "vxquery.hyracks.client_ip";
         public static final String HYRACKS_CLIENT_PORT = "vxquery.hyracks.client_port";
     }
+
+
+    public static final String RESULT_URL_PREFIX = "/vxquery/query/result/";
 }

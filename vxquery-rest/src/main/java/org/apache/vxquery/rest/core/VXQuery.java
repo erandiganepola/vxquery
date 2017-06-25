@@ -72,11 +72,13 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.apache.vxquery.rest.Constants.Properties.HYRACKS_CLIENT_IP;
 import static org.apache.vxquery.rest.Constants.Properties.HYRACKS_CLIENT_PORT;
+import static org.apache.vxquery.rest.Constants.RESULT_URL_PREFIX;
 
 public class VXQuery {
 
@@ -85,17 +87,21 @@ public class VXQuery {
     private volatile State state = State.STOPPED;
     private VXQueryConfig vxQueryConfig;
     private ExecutorService workers;
+    private AtomicLong atomicLong;
 
     private Map<Long, QueryResultResponse> resultMap = new ConcurrentHashMap<>();
 
     private IHyracksClientConnection hyracksClientConnection;
     private HyracksDataset hyracksDataset;
-    /** Following two instances are used only if local hyracks cluster is used */
+    /**
+     * Following two instances are used only if local hyracks cluster is used
+     */
     private ClusterControllerService clusterControllerService;
     private NodeControllerService[] nodeControllerServices;
 
     public VXQuery(VXQueryConfig config) {
         vxQueryConfig = config;
+        atomicLong = new AtomicLong();
     }
 
     public synchronized void start() {
@@ -208,6 +214,7 @@ public class VXQuery {
 
         ResultSetId resultSetId = createResultSetId();
         response.setResultId(resultSetId.getId());
+        response.setResultUrl(RESULT_URL_PREFIX + resultSetId.getId());
 
         Date start;
         Date end;
@@ -299,12 +306,16 @@ public class VXQuery {
         OutputStream resultStream = new ByteArrayOutputStream();
         PrintWriter writer = new PrintWriter(resultStream, true);
 
-        while (reader.read(frame) > 0) {
-            writer.print(ResultUtils.getStringFromBuffer(frame.getBuffer(), frameTupleAccessor));
-            writer.flush();
-            frame.getBuffer().clear();
+        try {
+            while (reader.read(frame) > 0) {
+                writer.print(ResultUtils.getStringFromBuffer(frame.getBuffer(), frameTupleAccessor));
+                writer.flush();
+                frame.getBuffer().clear();
+            }
+        } finally {
+            writer.close();
         }
-        writer.close();
+
         hyracksClientConnection.waitForCompletion(jobId);
 
         resultMap.get(resultSetId.getId()).setResults(resultStream.toString());
@@ -318,11 +329,20 @@ public class VXQuery {
      * @return query result
      */
     public QueryResultResponse getResult(long resultId) {
-        if (resultMap.containsKey(resultId) && resultMap.get(resultId).getResults() != null) {
-            return resultMap.get(resultId);
+        QueryResultResponse response;
+        if (resultMap.containsKey(resultId)) {
+            if (resultMap.get(resultId).getResults() != null) {
+                response = resultMap.get(resultId);
+            } else {
+                response = new QueryResultResponse();
+                response.setStatus(Status.INCOMPLETE.toString());
+            }
+        } else {
+            response = new QueryResultResponse();
+            response.setStatus(Status.NOT_FOUND.toString());
         }
 
-        return null;
+        return response;
     }
 
     /**
@@ -331,7 +351,8 @@ public class VXQuery {
      * @return Result Set id generated with current system time.
      */
     protected ResultSetId createResultSetId() {
-        return new ResultSetId(System.nanoTime());
+        long resultSetID = atomicLong.incrementAndGet();
+        return new ResultSetId(resultSetID);
     }
 
     /**

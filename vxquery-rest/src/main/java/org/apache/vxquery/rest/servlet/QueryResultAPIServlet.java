@@ -17,12 +17,14 @@
 
 package org.apache.vxquery.rest.servlet;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hyracks.http.api.IServletRequest;
 import org.apache.hyracks.http.api.IServletResponse;
 import org.apache.vxquery.rest.core.VXQuery;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.QueryResultResponse;
 
+import java.io.IOException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
@@ -41,17 +43,23 @@ public class QueryResultAPIServlet extends RestAPIServlet {
     }
 
     @Override
-    protected void doHandle(IServletRequest request, IServletResponse response) {
+    protected void doHandle(IServletRequest request, IServletResponse response) throws IOException {
         LOGGER.log(Level.INFO, String.format("Received a result request with resultId : %s", request.getParameter("resultId")));
 
         QueryResultRequest resultRequest = getQueryResultRequest(request);
-        QueryResultResponse queryResponse = new QueryResultResponse();
+        QueryResultResponse queryResultResponse;
         try {
             // TODO: 6/21/17 Implement result fetching
+            queryResultResponse = vxQuery.getResult(resultRequest.getResultId());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when trying to get results for resultId: " + resultRequest.getResultId(), e);
             throw new IllegalArgumentException("Unable to fetch result for id : " + resultRequest.getResultId(), e);
         }
+
+        ObjectMapper jsonMapper = new ObjectMapper();
+        String jsonString = jsonMapper.writeValueAsString(queryResultResponse);
+        LOGGER.info(String.format("Query result response : %s", jsonString));
+        response.writer().print(jsonString);
     }
 
     private QueryResultRequest getQueryResultRequest(IServletRequest request) {

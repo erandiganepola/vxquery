@@ -19,6 +19,8 @@ package org.apache.vxquery.rest.core;
 
 public enum Status {
     SUCCESS("success"),
+    INCOMPLETE("incomplete"),
+    NOT_FOUND("not found"),
     FAILED("failed");
 
     private final String name;
