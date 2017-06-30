@@ -49,7 +49,7 @@ import org.apache.vxquery.context.DynamicContext;
 import org.apache.vxquery.context.DynamicContextImpl;
 import org.apache.vxquery.context.RootStaticContextImpl;
 import org.apache.vxquery.context.StaticContextImpl;
-import org.apache.vxquery.exceptions.SystemException;
+import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
@@ -87,7 +87,7 @@ public class VXQuery {
     private volatile State state = State.STOPPED;
     private VXQueryConfig vxQueryConfig;
     private ExecutorService workers;
-    private AtomicLong atomicLong;
+    private AtomicLong atomicLong = new AtomicLong(0);
 
     private Map<Long, QueryResultResponse> resultMap = new ConcurrentHashMap<>();
 
@@ -101,7 +101,6 @@ public class VXQuery {
 
     public VXQuery(VXQueryConfig config) {
         vxQueryConfig = config;
-        atomicLong = new AtomicLong();
     }
 
     public synchronized void start() {
@@ -121,7 +120,7 @@ public class VXQuery {
             } catch (Exception e) {
                 setState(State.STOPPED);
                 LOGGER.log(Level.SEVERE, "Error occurred when starting local hyracks", e);
-                throw new IllegalStateException("Unable to start local hyracks", e);
+                throw new VXQueryRuntimeException("Unable to start local hyracks", e);
             }
         } else {
             String hyracksClientIp = System.getProperty(HYRACKS_CLIENT_IP);
@@ -131,7 +130,7 @@ public class VXQuery {
                 hyracksClientConnection = new HyracksConnection(hyracksClientIp, hyracksClientPort);
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, String.format("Unable to create a hyracks client connection to %s:%d", hyracksClientIp, hyracksClientPort));
-                throw new IllegalStateException("Unable to create a hyracks client connection", e);
+                throw new VXQueryRuntimeException("Unable to create a hyracks client connection", e);
             }
 
             LOGGER.log(Level.INFO, String.format("Using hyracks connection to %s:%d", hyracksClientIp, hyracksClientPort));
@@ -142,24 +141,23 @@ public class VXQuery {
     }
 
     public synchronized void stop() {
-        if (!State.STARTED.equals(state)) {
-            throw new IllegalStateException("VXQuery is at state : " + state);
+        if (!State.STOPPED.equals(state)) {
+            setState(State.STOPPING);
+            workers.shutdownNow();
+
+            try {
+                stopLocalHyracks();
+            } catch (Exception e) {
+                setState(State.STARTED);
+                LOGGER.log(Level.SEVERE, "Error occurred when stopping VXQuery", e);
+                throw new VXQueryRuntimeException("Unable to stop local hyracks", e);
+            }
+
+            setState(State.STOPPED);
+            LOGGER.log(Level.INFO, "VXQuery stopped successfully");
+        } else {
+            LOGGER.log(Level.INFO, "VXQuery is already in state : " + state);
         }
-
-        setState(State.STOPPING);
-
-        try {
-            stopLocalHyracks();
-        } catch (Exception e) {
-            setState(State.STARTED);
-            LOGGER.log(Level.SEVERE, "Error occurred when stopping VXQuery", e);
-            throw new IllegalStateException("Unable to stop local hyracks", e);
-        }
-
-        workers.shutdownNow();
-
-        setState(State.STOPPED);
-        LOGGER.log(Level.INFO, "VXQuery stopped successfully");
     }
 
     private synchronized void setState(State newState) {
@@ -204,8 +202,6 @@ public class VXQuery {
     /**
      * Run the statement given in the {@link QueryRequest}
      *
-     * @throws IOException
-     * @throws SystemException
      * @throws Exception
      */
     private void runQuery(QueryRequest request, QueryResponse response) throws Exception {
@@ -244,6 +240,7 @@ public class VXQuery {
             return;
         }
 
+        // TODO: 6/30/17 Use futures here
         workers.submit(new Runnable() {
             @Override
             public void run() {
@@ -304,16 +301,13 @@ public class VXQuery {
         IFrameTupleAccessor frameTupleAccessor = new ResultFrameTupleAccessor();
 
         OutputStream resultStream = new ByteArrayOutputStream();
-        PrintWriter writer = new PrintWriter(resultStream, true);
 
-        try {
+        try (PrintWriter writer = new PrintWriter(resultStream, true)) {
             while (reader.read(frame) > 0) {
                 writer.print(ResultUtils.getStringFromBuffer(frame.getBuffer(), frameTupleAccessor));
                 writer.flush();
                 frame.getBuffer().clear();
             }
-        } finally {
-            writer.close();
         }
 
         hyracksClientConnection.waitForCompletion(jobId);
@@ -351,8 +345,9 @@ public class VXQuery {
      * @return Result Set id generated with current system time.
      */
     protected ResultSetId createResultSetId() {
-        long resultSetID = atomicLong.incrementAndGet();
-        return new ResultSetId(resultSetID);
+        long resultSetId = atomicLong.incrementAndGet();
+        LOGGER.log(Level.FINE, String.format("Creating result set with ID : %d", resultSetId));
+        return new ResultSetId(resultSetId);
     }
 
     /**

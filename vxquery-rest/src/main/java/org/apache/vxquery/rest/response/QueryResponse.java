@@ -16,12 +16,15 @@
  */
 package org.apache.vxquery.rest.response;
 
+import javax.xml.bind.annotation.XmlRootElement;
+
 /**
  * Resource class to represent a response to a given user query
  *
  * @author Erandi Ganepola
  */
-public class QueryResponse {
+@XmlRootElement
+public class QueryResponse implements APIResponse{
 
     private long resultId;
     private String requestId;

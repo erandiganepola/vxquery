@@ -17,13 +17,25 @@
 
 package org.apache.vxquery.rest.servlet;
 
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.htrace.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hyracks.http.api.IServletRequest;
 import org.apache.hyracks.http.api.IServletResponse;
 import org.apache.hyracks.http.server.AbstractServlet;
 import org.apache.hyracks.http.server.utils.HttpUtil;
+import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
+import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
+import org.apache.vxquery.rest.response.APIResponse;
+import org.apache.vxquery.rest.response.QueryResponse;
+import org.apache.vxquery.rest.response.QueryResultResponse;
 
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,28 +49,88 @@ public abstract class RestAPIServlet extends AbstractServlet {
 
     protected final Logger LOGGER;
 
+    private JAXBContext jaxbContext;
+
     public RestAPIServlet(ConcurrentMap<String, Object> ctx, String... paths) {
         super(ctx, paths);
         LOGGER = Logger.getLogger(this.getClass().getName());
+        try {
+            jaxbContext = JAXBContext.newInstance(QueryResultResponse.class, QueryResponse.class);
+        } catch (JAXBException e) {
+            LOGGER.log(Level.SEVERE, "Error occurred when creating JAXB context", e);
+            throw new VXQueryRuntimeException("Unable to load JAXBContext", e);
+        }
     }
 
     protected final void get(IServletRequest request, IServletResponse response) {
         try {
-            // enable cross-origin resource sharing
-            response.setHeader("Access-Control-Allow-Origin", "*");
-            response.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
             initResponse(request, response);
-            doHandle(request, response);
+            APIResponse entity = doHandle(request);
+            if (entity == null) {
+                LOGGER.log(Level.WARNING, "No entity found for request : " + request);
+                response.setStatus(HttpResponseStatus.BAD_REQUEST);
+            } else {
+                setEntity(request, response, entity);
+                response.setStatus(HttpResponseStatus.OK);
+            }
+        } catch (VXQueryServletRuntimeException e) {
+            response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+            LOGGER.log(Level.SEVERE, "Failure handling request", e);
         } catch (IOException e) {
             response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-            LOGGER.log(Level.WARNING, "Failure handling request", e);
+            LOGGER.log(Level.SEVERE, "Error occurred when setting content type", e);
         }
     }
 
     private void initResponse(IServletRequest request, IServletResponse response) throws IOException {
-        response.setStatus(HttpResponseStatus.OK);
-        HttpUtil.setContentType(response, "application/json");
+        // enable cross-origin resource sharing
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+
+        HttpUtil.setContentType(response, "text/plain");
     }
 
-    protected abstract void doHandle(IServletRequest request, IServletResponse response) throws IOException;
+    private void setEntity(IServletRequest request, IServletResponse response, APIResponse entity) throws IOException {
+        String accept = request.getHeader(HttpHeaderNames.ACCEPT, "");
+        String entityString;
+        switch (accept) {
+            case "application/xml":
+                try {
+                    HttpUtil.setContentType(response, "application/xml");
+
+                    Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
+                    jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+                    StringWriter sw = new StringWriter();
+                    jaxbMarshaller.marshal(entity, sw);
+                    entityString = sw.toString();
+                } catch (JAXBException e) {
+                    LOGGER.log(Level.SEVERE, "Error occurred when mapping java object into xml", e);
+                    throw new VXQueryServletRuntimeException("Error occurred when marshalling entity", e);
+                }
+                break;
+            case "application/json":
+            default:
+                try {
+                    HttpUtil.setContentType(response, "application/json");
+                    ObjectMapper jsonMapper = new ObjectMapper();
+                    entityString = jsonMapper.writeValueAsString(entity);
+                } catch (JsonProcessingException e) {
+                    LOGGER.log(Level.SEVERE, "Error occurred when mapping java object into JSON", e);
+                    throw new VXQueryServletRuntimeException("Error occurred when mapping entity", e);
+                }
+                break;
+        }
+
+        response.writer().write(entityString);
+    }
+
+    /**
+     * This abstract method is supposed to return an object which will be the entity of the response being sent
+     * to the client. Implementing classes doesn't have to worry about the content type of the request.
+     *
+     * @param request {@link IServletRequest} received
+     * @return Object to be set as the entity of the response
+     * @throws IOException
+     */
+    protected abstract APIResponse doHandle(IServletRequest request) throws IOException;
 }

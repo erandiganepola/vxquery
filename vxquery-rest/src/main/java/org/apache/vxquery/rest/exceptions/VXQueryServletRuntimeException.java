@@ -15,28 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.response;
+package org.apache.vxquery.rest.exceptions;
 
-import javax.xml.bind.annotation.XmlRootElement;
+/**
+ * A runtime exception class to be used to be thrown when runtime errors occur within servlets.
+ *
+ * @author Erandi Ganepola
+ */
+public class VXQueryServletRuntimeException extends VXQueryRuntimeException {
 
-@XmlRootElement
-public class Metrics {
-    private long compileTime;
-    private long elapsedTime;
-
-    public long getCompileTime() {
-        return compileTime;
+    public VXQueryServletRuntimeException(String message) {
+        super(message);
     }
 
-    public void setCompileTime(long compileTime) {
-        this.compileTime = compileTime;
-    }
-
-    public long getElapsedTime() {
-        return elapsedTime;
-    }
-
-    public void setElapsedTime(long elapsedTime) {
-        this.elapsedTime = elapsedTime;
+    public VXQueryServletRuntimeException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

@@ -17,13 +17,15 @@
 
 package org.apache.vxquery.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
+import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.rest.core.Status;
 import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
@@ -34,12 +36,13 @@ import org.junit.Test;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import static org.apache.http.client.utils.HttpClientUtils.closeQuietly;
 import static org.apache.vxquery.rest.Constants.Parameters.*;
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
 
@@ -56,79 +59,96 @@ public class RestServerTest {
             "<title>16th International Conference on Very Large Data Bases, August 13-16, 1990, Brisbane, Queensland, Australia, Proceedings.</title>\n" +
             "<title>Proceedings of the 1990 ACM SIGMOD International Conference on Management of Data, Atlantic City, NJ, May 23-25, 1990.</title>\n";
 
-    private static final RestServer restServer = new RestServer();
+    private static RestServer restServer;
+    private static URI queryEndpointUri;
 
     @BeforeClass
     public static void setUp() throws Exception {
+        System.setProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE, "vxquery.properties");
+        restServer = new RestServer();
         restServer.start();
+
+        queryEndpointUri = new URIBuilder()
+                .setScheme("http")
+                .setHost("localhost")
+                .setPort(restServer.getPort())
+                .setPath(QUERY_ENDPOINT)
+                .addParameter(STATEMENT, QUERY)
+                .build();
     }
 
     @Test
-    public void testRESTServer() throws InterruptedException, URISyntaxException, IOException {
-        HttpClient httpClient = HttpClientBuilder.create().build();
-
-        URI queryEndpointUri = new URIBuilder()
-                .setScheme("http")
-                .setHost("localhost")
-                .setPort(8085)
-                .setPath(QUERY_ENDPOINT)
-                .addParameter(STATEMENT, QUERY)
-                .addParameter(SHOW_AST, "true")
-                .addParameter(SHOW_TET, "true")
-                .addParameter(SHOW_OET, "true")
-                .addParameter(SHOW_RP, "true")
-                .build();
-
-        HttpGet queryRequest = new HttpGet(queryEndpointUri);
-        HttpResponse queryHttpResponse = httpClient.execute(queryRequest);
-        Assert.assertEquals(queryHttpResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
-
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(queryHttpResponse.getEntity().getContent()));
-        StringBuilder result = new StringBuilder();
-        String line = "";
-        while ((line = bufferedReader.readLine()) != null) {
-            result.append(line);
-        }
-        bufferedReader.close();
-        closeQuietly(queryHttpResponse);
+    public void testJSONResponses() throws URISyntaxException, IOException, InterruptedException {
+        String httpQueryResponse = getResponse(queryEndpointUri);
+        Assert.assertNotNull(httpQueryResponse);
+        Assert.assertTrue(httpQueryResponse.length() > 0);
 
         ObjectMapper jsonMapper = new ObjectMapper();
-        QueryResponse queryResponse = jsonMapper.readValue(result.toString(), QueryResponse.class);
+        QueryResponse queryResponse = jsonMapper.readValue(httpQueryResponse, QueryResponse.class);
 
         Assert.assertEquals(Status.SUCCESS.toString(), queryResponse.getStatus());
         Assert.assertNotNull(queryResponse.getResultId());
         Assert.assertNotNull(queryResponse.getRequestId());
         Assert.assertNotNull(queryResponse.getResultUrl());
 
-        // TODO: 6/25/17 Modify this not to use time bound waits for query completion
-        Thread.sleep(20000);
-
         URI queryResultEndpointUri = new URIBuilder()
                 .setScheme("http")
                 .setHost("localhost")
-                .setPort(8085)
+                .setPort(restServer.getPort())
                 .setPath(QUERY_RESULT_ENDPOINT + String.valueOf(queryResponse.getResultId()))
                 .build();
 
-        HttpGet queryResultRequest = new HttpGet(queryResultEndpointUri);
-        HttpResponse queryResultHttpResponse = httpClient.execute(queryResultRequest);
-        Assert.assertEquals(queryResultHttpResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
+        QueryResultResponse queryResultResponse;
+        do {
+            String httpQueryResultResponse = getResponse(queryResultEndpointUri);
+            Assert.assertNotNull(httpQueryResultResponse);
+            Assert.assertTrue(httpQueryResultResponse.length() > 0);
 
-        bufferedReader = new BufferedReader(new InputStreamReader(queryResultHttpResponse.getEntity().getContent()));
-        result = new StringBuilder();
-        line = "";
-        while ((line = bufferedReader.readLine()) != null) {
-            result.append(line);
+            queryResultResponse = jsonMapper.readValue(httpQueryResultResponse, QueryResultResponse.class);
+
+            if (Status.INCOMPLETE.toString().equals(queryResultResponse.getStatus())) {
+                Thread.sleep(5000);
+                continue;
+            }
+
+            Assert.assertEquals(Status.SUCCESS.toString(), queryResultResponse.getStatus());
+            Assert.assertNotNull(queryResultResponse.getResults());
+            Assert.assertNotNull(queryResultResponse.getRequestId());
+            Assert.assertEquals(RESULT, queryResultResponse.getResults());
+            break;
+        } while (!Status.FAILED.toString().equals(queryResultResponse.getStatus()));
+    }
+
+    private static String getResponse(URI uri) {
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setConnectionTimeToLive(20, TimeUnit.SECONDS)
+                .build();
+
+        StringBuilder responseBody = new StringBuilder();
+        try {
+            HttpGet queryRequest = new HttpGet(uri);
+
+            try (CloseableHttpResponse httpQueryResponse = httpClient.execute(queryRequest)) {
+                Assert.assertEquals(httpQueryResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
+
+
+                HttpEntity entity = httpQueryResponse.getEntity();
+                Assert.assertNotNull(entity);
+
+                try (InputStream in = entity.getContent()) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        responseBody.append(line);
+                    }
+                }
+            }
+        } catch (IOException ignored) {
+        } finally {
+            HttpClientUtils.closeQuietly(httpClient);
         }
-        bufferedReader.close();
 
-        jsonMapper = new ObjectMapper();
-        QueryResultResponse queryResultResponse = jsonMapper.readValue(result.toString(), QueryResultResponse.class);
-
-        Assert.assertEquals(Status.SUCCESS.toString(), queryResultResponse.getStatus());
-        Assert.assertNotNull(queryResultResponse.getResults());
-        Assert.assertNotNull(queryResultResponse.getRequestId());
-        closeQuietly(queryHttpResponse);
+        return responseBody.toString();
     }
 
     @AfterClass

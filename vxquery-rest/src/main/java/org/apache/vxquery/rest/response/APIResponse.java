@@ -17,26 +17,5 @@
 
 package org.apache.vxquery.rest.response;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
-@XmlRootElement
-public class Metrics {
-    private long compileTime;
-    private long elapsedTime;
-
-    public long getCompileTime() {
-        return compileTime;
-    }
-
-    public void setCompileTime(long compileTime) {
-        this.compileTime = compileTime;
-    }
-
-    public long getElapsedTime() {
-        return elapsedTime;
-    }
-
-    public void setElapsedTime(long elapsedTime) {
-        this.elapsedTime = elapsedTime;
-    }
+public interface APIResponse {
 }

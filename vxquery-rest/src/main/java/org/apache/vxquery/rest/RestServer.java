@@ -21,6 +21,7 @@ import org.apache.hyracks.http.server.HttpServer;
 import org.apache.hyracks.http.server.WebManager;
 import org.apache.vxquery.rest.core.VXQuery;
 import org.apache.vxquery.rest.core.VXQueryConfig;
+import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.servlet.QueryAPIServlet;
 import org.apache.vxquery.rest.servlet.QueryResultAPIServlet;
 
@@ -30,6 +31,7 @@ import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.apache.vxquery.rest.Constants.Properties.REST_SERVER_PORT;
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
@@ -44,32 +46,36 @@ public class RestServer {
 
     private WebManager webManager;
     private VXQuery vxQuery;
+    private int port;
 
     public RestServer() {
-        vxQuery = new VXQuery(loadConfiguration());
+        try {
+            vxQuery = new VXQuery(loadConfiguration());
 
-        webManager = new WebManager();
-        HttpServer restServer = new HttpServer(webManager.getBosses(), webManager.getWorkers(), 8085);
-        restServer.addServlet(new QueryAPIServlet(vxQuery, restServer.ctx(), QUERY_ENDPOINT));
-        restServer.addServlet(new QueryResultAPIServlet(vxQuery, restServer.ctx(), QUERY_RESULT_ENDPOINT));
-        webManager.add(restServer);
+            webManager = new WebManager();
+            port = Integer.parseInt(System.getProperty(REST_SERVER_PORT, "8085"));
+            HttpServer restServer = new HttpServer(webManager.getBosses(), webManager.getWorkers(), port);
+
+            restServer.addServlet(new QueryAPIServlet(vxQuery, restServer.ctx(), QUERY_ENDPOINT));
+            restServer.addServlet(new QueryResultAPIServlet(vxQuery, restServer.ctx(), QUERY_RESULT_ENDPOINT));
+            webManager.add(restServer);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error occurred when creating rest server", e);
+            throw e;
+        }
     }
 
     public void start() {
-        LOGGER.log(Level.INFO, "Starting VXQuery");
         try {
+            LOGGER.log(Level.INFO, "Starting VXQuery");
             vxQuery.start();
-        } catch (RuntimeException e) {
-            LOGGER.log(Level.SEVERE, "Error occurred when starting VXQuery", e);
-            throw e;
-        }
+            LOGGER.log(Level.INFO, "VXQuery started successfully");
 
-        LOGGER.log(Level.CONFIG, "Starting rest server");
-        try {
+            LOGGER.log(Level.INFO, "Starting rest server");
             webManager.start();
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when starting rest server", e);
-            throw new IllegalStateException("Unable to start REST server", e);
+            throw new VXQueryRuntimeException("Unable to start REST server", e);
         }
         LOGGER.log(Level.INFO, "Rest server started");
 
@@ -81,21 +87,16 @@ public class RestServer {
     }
 
     public void stop() {
-        LOGGER.log(Level.CONFIG, "Stopping rest server");
         try {
+            LOGGER.log(Level.CONFIG, "Stopping rest server");
             webManager.stop();
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error occurred when stopping rest server", e);
-            throw new IllegalStateException("Unable to stop REST server", e);
-        }
-        LOGGER.log(Level.INFO, "Rest server stopped");
+            LOGGER.log(Level.INFO, "Rest server stopped");
 
-        LOGGER.log(Level.INFO, "Stopping VXQuery");
-        try {
+            LOGGER.log(Level.INFO, "Stopping VXQuery");
             vxQuery.stop();
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when stopping VXQuery", e);
-            throw e;
+            throw new VXQueryRuntimeException("Error occurred when stopping rest server", e);
         }
     }
 
@@ -113,5 +114,9 @@ public class RestServer {
         // TODO: 6/21/17 Load more properties
 
         return vxQueryConfig;
+    }
+
+    public int getPort() {
+        return port;
     }
 }

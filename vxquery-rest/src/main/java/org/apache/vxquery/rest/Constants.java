@@ -46,6 +46,8 @@ public class Constants {
     public class Properties {
         public static final String VXQUERY_PROPERTIES_FILE = "vxquery.properties";
 
+        public static final String REST_SERVER_PORT = "vxquery.rest.server.port";
+
         public static final String HYRACKS_CLIENT_IP = "vxquery.hyracks.client_ip";
         public static final String HYRACKS_CLIENT_PORT = "vxquery.hyracks.client_port";
     }

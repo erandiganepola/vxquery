@@ -123,4 +123,8 @@ public class QueryRequest {
     public void setShowMetrics(boolean showMetrics) {
         this.showMetrics = showMetrics;
     }
+
+    public String toString() {
+        return String.format("{ statement : %s }", statement);
+    }
 }

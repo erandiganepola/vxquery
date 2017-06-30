@@ -16,11 +16,11 @@
  */
 package org.apache.vxquery.rest.servlet;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hyracks.http.api.IServletRequest;
-import org.apache.hyracks.http.api.IServletResponse;
 import org.apache.vxquery.rest.core.VXQuery;
+import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
+import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.QueryResponse;
 
 import java.io.IOException;
@@ -44,7 +44,7 @@ public class QueryAPIServlet extends RestAPIServlet {
     }
 
     @Override
-    protected void doHandle(IServletRequest request, IServletResponse response) throws IOException {
+    protected APIResponse doHandle(IServletRequest request) throws IOException {
         LOGGER.log(Level.INFO, String.format("Received a query request with query : %s", request.getParameter("statement")));
 
         QueryRequest queryRequest = getQueryRequest(request);
@@ -53,13 +53,9 @@ public class QueryAPIServlet extends RestAPIServlet {
             queryResponse = vxQuery.execute(queryRequest);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when trying to execute query : " + queryRequest.getStatement(), e);
-            throw new IllegalArgumentException("Unable to execute the query given", e);
+            throw new VXQueryServletRuntimeException("Unable to execute the query given", e);
         }
-
-        ObjectMapper jsonMapper = new ObjectMapper();
-        String jsonString = jsonMapper.writeValueAsString(queryResponse);
-        LOGGER.info(String.format("Query response : %s", jsonString));
-        response.writer().print(jsonString);
+        return queryResponse;
     }
 
     private QueryRequest getQueryRequest(IServletRequest request) {

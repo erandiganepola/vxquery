@@ -15,28 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.response;
+package org.apache.vxquery.rest.exceptions;
 
-import javax.xml.bind.annotation.XmlRootElement;
+/**
+ * A runtime exception to be thrown by the {@link org.apache.vxquery.rest.core.VXQuery} and related classes of the
+ * rest server
+ *
+ * @author Erandi Ganepola
+ */
+public class VXQueryRuntimeException extends RuntimeException {
 
-@XmlRootElement
-public class Metrics {
-    private long compileTime;
-    private long elapsedTime;
-
-    public long getCompileTime() {
-        return compileTime;
+    public VXQueryRuntimeException(String message) {
+        super(message);
     }
 
-    public void setCompileTime(long compileTime) {
-        this.compileTime = compileTime;
-    }
-
-    public long getElapsedTime() {
-        return elapsedTime;
-    }
-
-    public void setElapsedTime(long elapsedTime) {
-        this.elapsedTime = elapsedTime;
+    public VXQueryRuntimeException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

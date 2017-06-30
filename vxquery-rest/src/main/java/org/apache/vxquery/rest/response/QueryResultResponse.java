@@ -17,7 +17,7 @@
 
 package org.apache.vxquery.rest.response;
 
-public class QueryResultResponse {
+public class QueryResultResponse implements APIResponse {
     private String requestId;
     private String status;
     private String results;
