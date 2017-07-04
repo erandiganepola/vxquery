@@ -80,6 +80,12 @@ import static org.apache.vxquery.rest.Constants.Properties.HYRACKS_CLIENT_IP;
 import static org.apache.vxquery.rest.Constants.Properties.HYRACKS_CLIENT_PORT;
 import static org.apache.vxquery.rest.Constants.RESULT_URL_PREFIX;
 
+/**
+ * Main class responsible for handling query requests. This class will first compile, then submit query to hyracks and
+ * finally fetch results for a given query.
+ *
+ * @author Erandi Ganepola
+ */
 public class VXQuery {
 
     public static final Logger LOGGER = Logger.getLogger(VXQuery.class.getName());
@@ -251,7 +257,6 @@ public class VXQuery {
 
                 Module module = compiler.getModule();
                 JobSpecification js = module.getHyracksJobSpecification();
-
                 DynamicContext dCtx = new DynamicContextImpl(module.getModuleContext());
                 js.setGlobalJobDataFactory(new VXQueryGlobalDataFactory(dCtx.createFactory()));
 
@@ -300,6 +305,7 @@ public class VXQuery {
         IHyracksDatasetReader reader = hyracksDataset.createReader(jobId, resultSetId);
         IFrameTupleAccessor frameTupleAccessor = new ResultFrameTupleAccessor();
 
+        // TODO: 7/3/17 Instead of keeping results in RAM, write to temporary files
         OutputStream resultStream = new ByteArrayOutputStream();
 
         try (PrintWriter writer = new PrintWriter(resultStream, true)) {

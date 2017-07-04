@@ -59,14 +59,17 @@ public class RestServerTest {
             "<title>16th International Conference on Very Large Data Bases, August 13-16, 1990, Brisbane, Queensland, Australia, Proceedings.</title>\n" +
             "<title>Proceedings of the 1990 ACM SIGMOD International Conference on Management of Data, Atlantic City, NJ, May 23-25, 1990.</title>\n";
 
+    private static VXQueryApplication application;
     private static RestServer restServer;
     private static URI queryEndpointUri;
 
     @BeforeClass
     public static void setUp() throws Exception {
         System.setProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE, "vxquery.properties");
-        restServer = new RestServer();
-        restServer.start();
+        application = new VXQueryApplication();
+        application.start();
+
+        restServer = application.getRestServer();
 
         queryEndpointUri = new URIBuilder()
                 .setScheme("http")
@@ -74,6 +77,10 @@ public class RestServerTest {
                 .setPort(restServer.getPort())
                 .setPath(QUERY_ENDPOINT)
                 .addParameter(STATEMENT, QUERY)
+                .addParameter(SHOW_AST, "true")
+                .addParameter(SHOW_TET, "true")
+                .addParameter(SHOW_OET, "true")
+                .addParameter(SHOW_RP, "true")
                 .build();
     }
 
@@ -119,16 +126,16 @@ public class RestServerTest {
         } while (!Status.FAILED.toString().equals(queryResultResponse.getStatus()));
     }
 
-    private static String getResponse(URI uri) {
+    private static String getResponse(URI uri) throws IOException {
         CloseableHttpClient httpClient = HttpClients.custom()
                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
                 .build();
 
         StringBuilder responseBody = new StringBuilder();
         try {
-            HttpGet queryRequest = new HttpGet(uri);
+            HttpGet request = new HttpGet(uri);
 
-            try (CloseableHttpResponse httpQueryResponse = httpClient.execute(queryRequest)) {
+            try (CloseableHttpResponse httpQueryResponse = httpClient.execute(request)) {
                 Assert.assertEquals(httpQueryResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
 
 
@@ -143,7 +150,6 @@ public class RestServerTest {
                     }
                 }
             }
-        } catch (IOException ignored) {
         } finally {
             HttpClientUtils.closeQuietly(httpClient);
         }
@@ -153,6 +159,6 @@ public class RestServerTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        restServer.stop();
+        application.stop();
     }
 }

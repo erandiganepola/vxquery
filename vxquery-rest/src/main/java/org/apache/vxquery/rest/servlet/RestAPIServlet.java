@@ -70,8 +70,10 @@ public abstract class RestAPIServlet extends AbstractServlet {
                 LOGGER.log(Level.WARNING, "No entity found for request : " + request);
                 response.setStatus(HttpResponseStatus.BAD_REQUEST);
             } else {
-                setEntity(request, response, entity);
+                // Important to set Status OK before setting the entity because the response (chunked) checks it before
+                // writing the response to channel.
                 response.setStatus(HttpResponseStatus.OK);
+                setEntity(request, response, entity);
             }
         } catch (VXQueryServletRuntimeException e) {
             response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
@@ -121,7 +123,7 @@ public abstract class RestAPIServlet extends AbstractServlet {
                 break;
         }
 
-        response.writer().write(entityString);
+        response.writer().print(entityString);
     }
 
     /**

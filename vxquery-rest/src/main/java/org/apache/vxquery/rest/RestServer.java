@@ -20,14 +20,10 @@ package org.apache.vxquery.rest;
 import org.apache.hyracks.http.server.HttpServer;
 import org.apache.hyracks.http.server.WebManager;
 import org.apache.vxquery.rest.core.VXQuery;
-import org.apache.vxquery.rest.core.VXQueryConfig;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.servlet.QueryAPIServlet;
 import org.apache.vxquery.rest.servlet.QueryResultAPIServlet;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,13 +41,10 @@ public class RestServer {
     public static final Logger LOGGER = Logger.getLogger(RestServer.class.getName());
 
     private WebManager webManager;
-    private VXQuery vxQuery;
     private int port;
 
-    public RestServer() {
+    public RestServer(VXQuery vxQuery) {
         try {
-            vxQuery = new VXQuery(loadConfiguration());
-
             webManager = new WebManager();
             port = Integer.parseInt(System.getProperty(REST_SERVER_PORT, "8085"));
             HttpServer restServer = new HttpServer(webManager.getBosses(), webManager.getWorkers(), port);
@@ -67,10 +60,6 @@ public class RestServer {
 
     public void start() {
         try {
-            LOGGER.log(Level.INFO, "Starting VXQuery");
-            vxQuery.start();
-            LOGGER.log(Level.INFO, "VXQuery started successfully");
-
             LOGGER.log(Level.INFO, "Starting rest server");
             webManager.start();
         } catch (Exception e) {
@@ -78,12 +67,6 @@ public class RestServer {
             throw new VXQueryRuntimeException("Unable to start REST server", e);
         }
         LOGGER.log(Level.INFO, "Rest server started");
-
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                RestServer.this.stop();
-            }
-        });
     }
 
     public void stop() {
@@ -91,29 +74,10 @@ public class RestServer {
             LOGGER.log(Level.CONFIG, "Stopping rest server");
             webManager.stop();
             LOGGER.log(Level.INFO, "Rest server stopped");
-
-            LOGGER.log(Level.INFO, "Stopping VXQuery");
-            vxQuery.stop();
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when stopping VXQuery", e);
             throw new VXQueryRuntimeException("Error occurred when stopping rest server", e);
         }
-    }
-
-    private VXQueryConfig loadConfiguration() {
-        VXQueryConfig vxQueryConfig = new VXQueryConfig();
-        String file = System.getProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE);
-        if (file != null) {
-            try (InputStream in = new FileInputStream(file)) {
-                System.getProperties().load(in);
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, String.format("Error occurred when loading properties file %s", file), e);
-            }
-        }
-
-        // TODO: 6/21/17 Load more properties
-
-        return vxQueryConfig;
     }
 
     public int getPort() {
