@@ -44,9 +44,8 @@ public class QueryResultAPIServlet extends RestAPIServlet {
 
     @Override
     protected APIResponse doHandle(IServletRequest request) throws IOException {
-        LOGGER.log(Level.INFO, String.format("Received a result request with resultId : %s", request.getParameter("resultId")));
-
         QueryResultRequest resultRequest = getQueryResultRequest(request);
+        LOGGER.log(Level.INFO, String.format("Received a result request with resultId : %d", resultRequest.getResultId()));
         QueryResultResponse queryResultResponse;
         try {
             queryResultResponse = vxQuery.getResult(resultRequest.getResultId());

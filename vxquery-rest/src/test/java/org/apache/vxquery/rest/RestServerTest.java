@@ -51,7 +51,7 @@ public class RestServerTest {
     private static final Logger LOGGER = Logger.getLogger(RestServerTest.class.getName());
 
     private static final String QUERY_RESULT_ENDPOINT = "/vxquery/query/result/";
-    private static final String QUERY = "for $x in doc(\"dblp.xml\")/dblp/proceedings where $x/year=1990 return $x/title";
+    private static final String QUERY = "for $x in doc(\"src/test/resources/dblp.xml\")/dblp/proceedings where $x/year=1990 return $x/title";
     private static final String RESULT = "<title>Advances in Database Technology - EDBT&apos;90.  International Conference on Extending Database Technology, Venice, Italy, March 26-30, 1990, Proceedings</title>\n" +
             "<title>Proceedings of the Sixth International Conference on Data Engineering, February 5-9, 1990, Los Angeles, California, USA</title>\n" +
             "<title>ICDT&apos;90, Third International Conference on Database Theory, Paris, France, December 12-14, 1990, Proceedings</title>\n" +
@@ -65,7 +65,7 @@ public class RestServerTest {
 
     @BeforeClass
     public static void setUp() throws Exception {
-        System.setProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE, "vxquery.properties");
+        System.setProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE, "src/test/resources/vxquery.properties");
         application = new VXQueryApplication();
         application.start();
 
