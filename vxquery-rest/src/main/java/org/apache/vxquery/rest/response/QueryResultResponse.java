@@ -17,11 +17,10 @@
 
 package org.apache.vxquery.rest.response;
 
-public class QueryResultResponse implements APIResponse {
+public class QueryResultResponse extends APIResponse {
+
     private String requestId;
-    private String status;
-    private String results;
-    private Metrics metrics = new Metrics();
+    private long resultId;
 
     public String getRequestId() {
         return requestId;
@@ -31,27 +30,11 @@ public class QueryResultResponse implements APIResponse {
         this.requestId = requestId;
     }
 
-    public String getStatus() {
-        return status;
+    public long getResultId() {
+        return resultId;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getResults() {
-        return results;
-    }
-
-    public void setResults(String results) {
-        this.results = results;
-    }
-
-    public Metrics getMetrics() {
-        return metrics;
-    }
-
-    public void setMetrics(Metrics metrics) {
-        this.metrics = metrics;
+    public void setResultId(long resultId) {
+        this.resultId = resultId;
     }
 }

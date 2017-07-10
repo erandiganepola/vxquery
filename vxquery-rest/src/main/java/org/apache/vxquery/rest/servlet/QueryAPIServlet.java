@@ -24,6 +24,7 @@ import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.QueryResponse;
 
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
@@ -63,7 +64,7 @@ public class QueryAPIServlet extends RestAPIServlet {
             throw new IllegalArgumentException("Parameter 'statement' is required to handle the request");
         }
 
-        QueryRequest queryRequest = new QueryRequest();
+        QueryRequest queryRequest = new QueryRequest(UUID.randomUUID().toString());
         queryRequest.setStatement(request.getParameter(STATEMENT));
         queryRequest.setCompileOnly("true".equals(request.getParameter(COMPILE_ONLY)));
         queryRequest.setShowMetrics("true".equals(request.getParameter(METRICS)));

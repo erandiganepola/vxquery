@@ -17,15 +17,18 @@
 
 package org.apache.vxquery.rest.response;
 
-public class APIResponse {
+import javax.xml.bind.annotation.XmlRootElement;
 
-    private String status;
+@XmlRootElement
+public class QueryResultErrorResponse extends QueryResultResponse {
 
-    public String getStatus() {
-        return status;
+    private String message;
+
+    public String getMessage() {
+        return message;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

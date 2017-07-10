@@ -52,7 +52,9 @@ import org.apache.vxquery.context.StaticContextImpl;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.QueryResponse;
+import org.apache.vxquery.rest.response.QueryResultErrorResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
+import org.apache.vxquery.rest.response.QueryResultSuccessResponse;
 import org.apache.vxquery.result.ResultUtils;
 import org.apache.vxquery.xmlquery.ast.ModuleNode;
 import org.apache.vxquery.xmlquery.query.Module;
@@ -68,10 +70,7 @@ import java.nio.file.Files;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -95,7 +94,7 @@ public class VXQuery {
     private ExecutorService workers;
     private AtomicLong atomicLong = new AtomicLong(0);
 
-    private Map<Long, QueryResultResponse> resultMap = new ConcurrentHashMap<>();
+    private Map<Long, Future<QueryResultResponse>> resultMap = new ConcurrentHashMap<>();
 
     private IHyracksClientConnection hyracksClientConnection;
     private HyracksDataset hyracksDataset;
@@ -182,7 +181,7 @@ public class VXQuery {
 
         QueryResponse response = prepareQueryResponse(request);
         try {
-            runQuery(request, response);
+            executeQuery(request, response);
             response.setStatus(Status.SUCCESS.toString());
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when running the query", e);
@@ -200,7 +199,7 @@ public class VXQuery {
      */
     private QueryResponse prepareQueryResponse(QueryRequest request) {
         QueryResponse response = new QueryResponse();
-        response.setRequestId(UUID.randomUUID().toString());
+        response.setRequestId(request.getRequestId());
         response.setStatement(request.getStatement());
         return response;
     }
@@ -210,11 +209,11 @@ public class VXQuery {
      *
      * @throws Exception
      */
-    private void runQuery(QueryRequest request, QueryResponse response) throws Exception {
+    private void executeQuery(final QueryRequest request, QueryResponse response) throws Exception {
         String query = request.getStatement();
         response.setStatement(query);
 
-        ResultSetId resultSetId = createResultSetId();
+        final ResultSetId resultSetId = createResultSetId();
         response.setResultId(resultSetId.getId());
         response.setResultUrl(RESULT_URL_PREFIX + resultSetId.getId());
 
@@ -231,7 +230,7 @@ public class VXQuery {
         start = request.isShowMetrics() ? new Date() : null;
 
         // Compiling the XQuery given
-        XMLQueryCompiler compiler = new XMLQueryCompiler(listener, nodeControllerInfos, request.getFrameSize(),
+        final XMLQueryCompiler compiler = new XMLQueryCompiler(listener, nodeControllerInfos, request.getFrameSize(),
                 vxQueryConfig.getAvailableProcessors(), vxQueryConfig.getJoinHashSize(), vxQueryConfig.getMaximumDataSize(), vxQueryConfig.getHdfsConf());
         CompilerControlBlock compilerControlBlock = new CompilerControlBlock(new StaticContextImpl(RootStaticContextImpl.INSTANCE),
                 resultSetId, null);
@@ -246,41 +245,54 @@ public class VXQuery {
             return;
         }
 
-        // TODO: 6/30/17 Use futures here
-        workers.submit(new Runnable() {
+        Future<QueryResultResponse> future = workers.submit(new Callable<QueryResultResponse>() {
             @Override
-            public void run() {
-                QueryResultResponse result = new QueryResultResponse();
-                result.setRequestId(response.getRequestId());
-                result.setStatus(Status.SUCCESS.toString());
-                resultMap.put(response.getResultId(), result);
-
+            public QueryResultResponse call() {
                 Module module = compiler.getModule();
                 JobSpecification js = module.getHyracksJobSpecification();
                 DynamicContext dCtx = new DynamicContextImpl(module.getModuleContext());
                 js.setGlobalJobDataFactory(new VXQueryGlobalDataFactory(dCtx.createFactory()));
 
-                long elapsedTime = 0;
-                Date start, end;
-
-                // Repeat execution for given times. Defaults to 1 iteration.
-                for (int i = 0; i < request.getRepeatExecutions(); ++i) {
-                    start = request.isShowMetrics() ? new Date() : null;
-                    try {
-                        runJob(resultSetId, js);
-                    } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Error occurred when running job", e);
-                    }
-
-                    // Set the elapsed time if requested
-                    if (request.isShowMetrics()) {
-                        end = new Date();
-                        elapsedTime += end.getTime() - start.getTime();
-                        result.getMetrics().setElapsedTime(elapsedTime);
-                    }
-                }
+                return runQuery(request, js, resultSetId);
             }
         });
+        resultMap.put(resultSetId.getId(), future);
+    }
+
+    private QueryResultResponse runQuery(QueryRequest request, JobSpecification js, ResultSetId resultSetId) {
+        QueryResultSuccessResponse successResponse = new QueryResultSuccessResponse();
+        successResponse.setRequestId(request.getRequestId());
+        successResponse.setResultId(resultSetId.getId());
+        successResponse.setStatus(Status.SUCCESS.toString());
+
+        long elapsedTime = 0;
+        Date start, end;
+
+        String result;
+        // Repeat execution for given times. Defaults to 1 iteration.
+        for (int i = 0; i < request.getRepeatExecutions(); ++i) {
+            start = request.isShowMetrics() ? new Date() : null;
+            try {
+                result = runJob(resultSetId, js);
+                successResponse.setResults(result);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error occurred when running job", e);
+                QueryResultErrorResponse errorResponse = new QueryResultErrorResponse();
+                errorResponse.setRequestId(request.getRequestId());
+                errorResponse.setResultId(resultSetId.getId());
+                errorResponse.setStatus(Status.FAILED.toString());
+                errorResponse.setMessage(e.getMessage());
+                return errorResponse;
+            }
+
+            // Set the elapsed time if requested
+            if (request.isShowMetrics()) {
+                end = new Date();
+                elapsedTime += end.getTime() - start.getTime();
+                successResponse.getMetrics().setElapsedTime(elapsedTime);
+            }
+        }
+        return successResponse;
     }
 
     /**
@@ -291,7 +303,7 @@ public class VXQuery {
      * @param spec JobSpecification object, containing frame size. Current specified job.
      * @throws Exception
      */
-    private void runJob(ResultSetId resultSetId, JobSpecification spec) throws Exception {
+    private String runJob(ResultSetId resultSetId, JobSpecification spec) throws Exception {
         int nReaders = 1;
 
         if (hyracksDataset == null) {
@@ -315,11 +327,10 @@ public class VXQuery {
                 frame.getBuffer().clear();
             }
         }
-
         hyracksClientConnection.waitForCompletion(jobId);
 
-        resultMap.get(resultSetId.getId()).setResults(resultStream.toString());
-        LOGGER.log(Level.INFO, String.format("Result for request %d : %s", resultSetId.getId(), resultStream.toString()));
+        LOGGER.log(Level.INFO, String.format("Result for resultId %d completed", resultSetId.getId()));
+        return resultStream.toString();
     }
 
     /**
@@ -329,20 +340,37 @@ public class VXQuery {
      * @return query result
      */
     public QueryResultResponse getResult(long resultId) {
-        QueryResultResponse response;
+        String errorMsg;
         if (resultMap.containsKey(resultId)) {
-            if (resultMap.get(resultId).getResults() != null) {
-                response = resultMap.get(resultId);
-            } else {
-                response = new QueryResultResponse();
-                response.setStatus(Status.INCOMPLETE.toString());
-            }
-        } else {
-            response = new QueryResultResponse();
-            response.setStatus(Status.NOT_FOUND.toString());
-        }
+            if (resultMap.get(resultId).isDone()) {
+                try {
+                    return resultMap.get(resultId).get();
+                } catch (InterruptedException e) {
+                    errorMsg = "Query execution job has been interrupted";
+                } catch (ExecutionException e) {
+                    errorMsg = "Error occurred when executing the query";
+                }
 
-        return response;
+                QueryResultErrorResponse response = new QueryResultErrorResponse();
+                response.setResultId(resultId);
+                response.setStatus(Status.FAILED.toString());
+                response.setMessage(errorMsg);
+                return response;
+            } else {
+                QueryResultErrorResponse response = new QueryResultErrorResponse();
+                response.setResultId(resultId);
+                response.setStatus(Status.INCOMPLETE.toString());
+                response.setMessage("Query execution hasn't finished yet");
+                return response;
+            }
+
+        } else {
+            QueryResultErrorResponse response = new QueryResultErrorResponse();
+            response.setResultId(resultId);
+            response.setStatus(Status.NOT_FOUND.toString());
+            response.setMessage("No query is found for result ID : " + resultId);
+            return response;
+        }
     }
 
     /**

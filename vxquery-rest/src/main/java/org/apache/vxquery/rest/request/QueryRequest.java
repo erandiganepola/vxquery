@@ -23,6 +23,10 @@ package org.apache.vxquery.rest.request;
  */
 public class QueryRequest {
 
+    public QueryRequest(String requestId) {
+        this.requestId = requestId;
+    }
+
     private String statement;
 
     private boolean compileOnly;
@@ -43,6 +47,9 @@ public class QueryRequest {
     private boolean showOptimizedExpressionTree = false;
 
     private boolean showRuntimePlan = false;
+
+    /** A unique UUID to uniquely identify a given request */
+    private String requestId;
 
     public String getStatement() {
         return statement;
@@ -126,5 +133,9 @@ public class QueryRequest {
 
     public String toString() {
         return String.format("{ statement : %s }", statement);
+    }
+
+    public String getRequestId() {
+        return requestId;
     }
 }

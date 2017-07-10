@@ -52,6 +52,11 @@ public class Constants {
         public static final String HYRACKS_CLIENT_PORT = "vxquery.hyracks.client_port";
     }
 
+    public class HttpHeaderValues {
+        public static final String CONTENT_TYPE_JSON = "application/json";
+        public static final String CONTENT_TYPE_XML = "application/xml";
+    }
+
 
     public static final String RESULT_URL_PREFIX = "/vxquery/query/result/";
 }

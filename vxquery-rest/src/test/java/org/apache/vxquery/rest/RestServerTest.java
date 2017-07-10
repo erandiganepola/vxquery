@@ -18,8 +18,10 @@
 package org.apache.vxquery.rest;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.HttpClientUtils;
@@ -28,21 +30,25 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.rest.core.Status;
 import org.apache.vxquery.rest.response.QueryResponse;
+import org.apache.vxquery.rest.response.QueryResultErrorResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
+import org.apache.vxquery.rest.response.QueryResultSuccessResponse;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
+import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
+import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
 import static org.apache.vxquery.rest.Constants.Parameters.*;
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
 
@@ -61,7 +67,6 @@ public class RestServerTest {
 
     private static VXQueryApplication application;
     private static RestServer restServer;
-    private static URI queryEndpointUri;
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -70,8 +75,20 @@ public class RestServerTest {
         application.start();
 
         restServer = application.getRestServer();
+    }
 
-        queryEndpointUri = new URIBuilder()
+    @Test
+    public void testJSONResponses() throws Exception {
+        runTest(CONTENT_TYPE_JSON);
+    }
+
+    @Test
+    public void testXMLResponses() throws Exception {
+        runTest(CONTENT_TYPE_XML);
+    }
+
+    private void runTest(String contentType) throws Exception {
+        URI queryEndpointUri = new URIBuilder()
                 .setScheme("http")
                 .setHost("localhost")
                 .setPort(restServer.getPort())
@@ -82,79 +99,127 @@ public class RestServerTest {
                 .addParameter(SHOW_OET, "true")
                 .addParameter(SHOW_RP, "true")
                 .build();
-    }
 
-    @Test
-    public void testJSONResponses() throws URISyntaxException, IOException, InterruptedException {
-        String httpQueryResponse = getResponse(queryEndpointUri);
-        Assert.assertNotNull(httpQueryResponse);
-        Assert.assertTrue(httpQueryResponse.length() > 0);
-
-        ObjectMapper jsonMapper = new ObjectMapper();
-        QueryResponse queryResponse = jsonMapper.readValue(httpQueryResponse, QueryResponse.class);
+        QueryResponse queryResponse = getQueryResponse(queryEndpointUri, contentType);
+        Assert.assertNotNull(queryResponse);
 
         Assert.assertEquals(Status.SUCCESS.toString(), queryResponse.getStatus());
         Assert.assertNotNull(queryResponse.getResultId());
         Assert.assertNotNull(queryResponse.getRequestId());
         Assert.assertNotNull(queryResponse.getResultUrl());
+        Assert.assertNotNull(queryResponse.getAbstractSyntaxTree());
+        Assert.assertNotNull(queryResponse.getTranslatedExpressionTree());
+        Assert.assertNotNull(queryResponse.getOptimizedExpressionTree());
+        Assert.assertNotNull(queryResponse.getRuntimePlan());
 
-        URI queryResultEndpointUri = new URIBuilder()
-                .setScheme("http")
-                .setHost("localhost")
-                .setPort(restServer.getPort())
-                .setPath(QUERY_RESULT_ENDPOINT + String.valueOf(queryResponse.getResultId()))
-                .build();
-
-        QueryResultResponse queryResultResponse;
+        QueryResultResponse resultResponse;
         do {
-            String httpQueryResultResponse = getResponse(queryResultEndpointUri);
-            Assert.assertNotNull(httpQueryResultResponse);
-            Assert.assertTrue(httpQueryResultResponse.length() > 0);
+            resultResponse = getQueryResultResponse(queryResponse.getResultId(), contentType);
+            Assert.assertNotNull(resultResponse);
+            Assert.assertNotNull(resultResponse.getStatus());
 
-            queryResultResponse = jsonMapper.readValue(httpQueryResultResponse, QueryResultResponse.class);
-
-            if (Status.INCOMPLETE.toString().equals(queryResultResponse.getStatus())) {
+            if (!Status.SUCCESS.toString().equals(resultResponse.getStatus())) {
+                Assert.assertTrue(resultResponse instanceof QueryResultErrorResponse);
+                Assert.assertEquals(Status.INCOMPLETE.toString(), resultResponse.getStatus());
                 Thread.sleep(5000);
                 continue;
             }
 
-            Assert.assertEquals(Status.SUCCESS.toString(), queryResultResponse.getStatus());
-            Assert.assertNotNull(queryResultResponse.getResults());
-            Assert.assertNotNull(queryResultResponse.getRequestId());
-            Assert.assertEquals(RESULT, queryResultResponse.getResults());
+            Assert.assertEquals(Status.SUCCESS.toString(), resultResponse.getStatus());
+            Assert.assertTrue(resultResponse instanceof QueryResultSuccessResponse);
+
+            QueryResultSuccessResponse successResponse = (QueryResultSuccessResponse) resultResponse;
+            Assert.assertNotNull(successResponse.getResults());
+            Assert.assertNotNull(resultResponse.getRequestId());
+            Assert.assertEquals(RESULT.replace("\n", ""), successResponse.getResults().replace("\n", ""));
             break;
-        } while (!Status.FAILED.toString().equals(queryResultResponse.getStatus()));
+        } while (!Status.FAILED.toString().equals(resultResponse.getStatus()));
     }
 
-    private static String getResponse(URI uri) throws IOException {
+    private static QueryResponse getQueryResponse(URI uri, String accepts) throws IOException, JAXBException {
         CloseableHttpClient httpClient = HttpClients.custom()
                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
                 .build();
 
-        StringBuilder responseBody = new StringBuilder();
         try {
             HttpGet request = new HttpGet(uri);
+            request.setHeader(HttpHeaders.ACCEPT, accepts);
 
             try (CloseableHttpResponse httpQueryResponse = httpClient.execute(request)) {
                 Assert.assertEquals(httpQueryResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
-
+                Assert.assertEquals(accepts, httpQueryResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
 
                 HttpEntity entity = httpQueryResponse.getEntity();
                 Assert.assertNotNull(entity);
 
-                try (InputStream in = entity.getContent()) {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        responseBody.append(line);
-                    }
+                String response = readEntity(entity);
+                return mapEntity(response, QueryResponse.class, accepts);
+            }
+        } finally {
+            HttpClientUtils.closeQuietly(httpClient);
+        }
+    }
+
+    private static QueryResultResponse getQueryResultResponse(long resultId, String accepts) throws IOException, URISyntaxException, JAXBException {
+        URI queryResultEndpointUri = new URIBuilder()
+                .setScheme("http")
+                .setHost("localhost")
+                .setPort(restServer.getPort())
+                .setPath(QUERY_RESULT_ENDPOINT + String.valueOf(resultId))
+                .build();
+
+        CloseableHttpClient httpClient = HttpClients.custom()
+                .setConnectionTimeToLive(20, TimeUnit.SECONDS)
+                .build();
+
+        try {
+            HttpGet request = new HttpGet(queryResultEndpointUri);
+            request.setHeader(HttpHeaders.ACCEPT, accepts);
+
+            try (CloseableHttpResponse httpQueryResponse = httpClient.execute(request)) {
+                Assert.assertEquals(accepts, httpQueryResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+
+                HttpEntity entity = httpQueryResponse.getEntity();
+                Assert.assertNotNull(entity);
+
+                String response = readEntity(entity);
+
+                if (httpQueryResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                    return mapEntity(response, QueryResultSuccessResponse.class, accepts);
+                } else {
+                    return mapEntity(response, QueryResultErrorResponse.class, accepts);
                 }
             }
         } finally {
             HttpClientUtils.closeQuietly(httpClient);
         }
+    }
 
+    private static String readEntity(HttpEntity entity) throws IOException {
+        StringBuilder responseBody = new StringBuilder();
+
+        try (InputStream in = entity.getContent()) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                responseBody.append(line);
+            }
+        }
         return responseBody.toString();
+    }
+
+    private static <T> T mapEntity(String entity, Class<T> type, String contentType) throws IOException, JAXBException {
+        switch (contentType) {
+            case CONTENT_TYPE_JSON:
+                ObjectMapper jsonMapper = new ObjectMapper();
+                return jsonMapper.readValue(entity, type);
+            case CONTENT_TYPE_XML:
+                JAXBContext jaxbContext = JAXBContext.newInstance(type);
+                Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+                return type.cast(unmarshaller.unmarshal(new StringReader(entity)));
+        }
+
+        throw new IllegalArgumentException("Entity didn't match any content type");
     }
 
     @AfterClass

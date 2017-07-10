@@ -24,7 +24,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * @author Erandi Ganepola
  */
 @XmlRootElement
-public class QueryResponse implements APIResponse{
+public class QueryResponse extends APIResponse{
 
     private long resultId;
     private String requestId;
@@ -51,14 +51,6 @@ public class QueryResponse implements APIResponse{
 
     public void setRequestId(String requestId) {
         this.requestId = requestId;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public String getResultUrl() {

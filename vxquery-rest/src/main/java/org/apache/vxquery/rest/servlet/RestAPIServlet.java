@@ -25,11 +25,14 @@ import org.apache.hyracks.http.api.IServletRequest;
 import org.apache.hyracks.http.api.IServletResponse;
 import org.apache.hyracks.http.server.AbstractServlet;
 import org.apache.hyracks.http.server.utils.HttpUtil;
+import org.apache.vxquery.rest.Constants;
+import org.apache.vxquery.rest.core.Status;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
 import org.apache.vxquery.rest.response.APIResponse;
+import org.apache.vxquery.rest.response.QueryResultErrorResponse;
 import org.apache.vxquery.rest.response.QueryResponse;
-import org.apache.vxquery.rest.response.QueryResultResponse;
+import org.apache.vxquery.rest.response.QueryResultSuccessResponse;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -55,7 +58,7 @@ public abstract class RestAPIServlet extends AbstractServlet {
         super(ctx, paths);
         LOGGER = Logger.getLogger(this.getClass().getName());
         try {
-            jaxbContext = JAXBContext.newInstance(QueryResultResponse.class, QueryResponse.class);
+            jaxbContext = JAXBContext.newInstance(QueryResultSuccessResponse.class, QueryResponse.class, QueryResultErrorResponse.class);
         } catch (JAXBException e) {
             LOGGER.log(Level.SEVERE, "Error occurred when creating JAXB context", e);
             throw new VXQueryRuntimeException("Unable to load JAXBContext", e);
@@ -72,7 +75,7 @@ public abstract class RestAPIServlet extends AbstractServlet {
             } else {
                 // Important to set Status OK before setting the entity because the response (chunked) checks it before
                 // writing the response to channel.
-                response.setStatus(HttpResponseStatus.OK);
+                setResponseStatus(response, entity);
                 setEntity(request, response, entity);
             }
         } catch (VXQueryServletRuntimeException e) {
@@ -96,9 +99,9 @@ public abstract class RestAPIServlet extends AbstractServlet {
         String accept = request.getHeader(HttpHeaderNames.ACCEPT, "");
         String entityString;
         switch (accept) {
-            case "application/xml":
+            case Constants.HttpHeaderValues.CONTENT_TYPE_XML:
                 try {
-                    HttpUtil.setContentType(response, "application/xml");
+                    HttpUtil.setContentType(response, Constants.HttpHeaderValues.CONTENT_TYPE_XML);
 
                     Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
                     jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
@@ -110,10 +113,10 @@ public abstract class RestAPIServlet extends AbstractServlet {
                     throw new VXQueryServletRuntimeException("Error occurred when marshalling entity", e);
                 }
                 break;
-            case "application/json":
+            case Constants.HttpHeaderValues.CONTENT_TYPE_JSON:
             default:
                 try {
-                    HttpUtil.setContentType(response, "application/json");
+                    HttpUtil.setContentType(response, Constants.HttpHeaderValues.CONTENT_TYPE_JSON);
                     ObjectMapper jsonMapper = new ObjectMapper();
                     entityString = jsonMapper.writeValueAsString(entity);
                 } catch (JsonProcessingException e) {
@@ -124,6 +127,20 @@ public abstract class RestAPIServlet extends AbstractServlet {
         }
 
         response.writer().print(entityString);
+    }
+
+    private void setResponseStatus(IServletResponse response, APIResponse entity) {
+        if (Status.SUCCESS.toString().equals(entity.getStatus())) {
+            response.setStatus(HttpResponseStatus.OK);
+        } else if (Status.FAILED.toString().equals(entity.getStatus())) {
+            response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+        } else if (Status.NOT_FOUND.toString().equals(entity.getStatus())) {
+            response.setStatus(HttpResponseStatus.NOT_FOUND);
+        } else if (Status.INCOMPLETE.toString().equals(entity.getStatus())) {
+            response.setStatus(HttpResponseStatus.NOT_FOUND);
+        } else {
+            response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
