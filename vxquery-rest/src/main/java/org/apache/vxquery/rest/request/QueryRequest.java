@@ -23,7 +23,12 @@ package org.apache.vxquery.rest.request;
  */
 public class QueryRequest {
 
-    public QueryRequest(String requestId) {
+    public QueryRequest(String requestId, String statement) {
+        if (statement == null) {
+            throw new IllegalArgumentException("Statement cannot be null");
+        }
+
+        this.statement = statement;
         this.requestId = requestId;
     }
 
@@ -53,10 +58,6 @@ public class QueryRequest {
 
     public String getStatement() {
         return statement;
-    }
-
-    public void setStatement(String statement) {
-        this.statement = statement;
     }
 
     public boolean isCompileOnly() {

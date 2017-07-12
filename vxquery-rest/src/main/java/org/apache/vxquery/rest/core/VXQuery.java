@@ -18,6 +18,7 @@ package org.apache.vxquery.rest.core;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.DomDriver;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.algebra.prettyprint.AlgebricksAppendable;
@@ -32,6 +33,7 @@ import org.apache.hyracks.api.comm.IFrameTupleAccessor;
 import org.apache.hyracks.api.comm.VSizeFrame;
 import org.apache.hyracks.api.dataset.IHyracksDatasetReader;
 import org.apache.hyracks.api.dataset.ResultSetId;
+import org.apache.hyracks.api.exceptions.HyracksException;
 import org.apache.hyracks.api.job.JobFlag;
 import org.apache.hyracks.api.job.JobId;
 import org.apache.hyracks.api.job.JobSpecification;
@@ -49,12 +51,14 @@ import org.apache.vxquery.context.DynamicContext;
 import org.apache.vxquery.context.DynamicContextImpl;
 import org.apache.vxquery.context.RootStaticContextImpl;
 import org.apache.vxquery.context.StaticContextImpl;
+import org.apache.vxquery.exceptions.SystemException;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
+import org.apache.vxquery.rest.request.QueryResultRequest;
+import org.apache.vxquery.rest.response.APIResponse;
+import org.apache.vxquery.rest.response.Error;
 import org.apache.vxquery.rest.response.QueryResponse;
-import org.apache.vxquery.rest.response.QueryResultErrorResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
-import org.apache.vxquery.rest.response.QueryResultSuccessResponse;
 import org.apache.vxquery.result.ResultUtils;
 import org.apache.vxquery.xmlquery.ast.ModuleNode;
 import org.apache.vxquery.xmlquery.query.Module;
@@ -70,11 +74,12 @@ import java.nio.file.Files;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.SEVERE;
 import static org.apache.vxquery.rest.Constants.Properties.HYRACKS_CLIENT_IP;
 import static org.apache.vxquery.rest.Constants.Properties.HYRACKS_CLIENT_PORT;
 import static org.apache.vxquery.rest.Constants.RESULT_URL_PREFIX;
@@ -91,16 +96,13 @@ public class VXQuery {
 
     private volatile State state = State.STOPPED;
     private VXQueryConfig vxQueryConfig;
-    private ExecutorService workers;
     private AtomicLong atomicLong = new AtomicLong(0);
 
-    private Map<Long, Future<QueryResultResponse>> resultMap = new ConcurrentHashMap<>();
+    private Map<Long, HyracksJobContext> jobContexts = new ConcurrentHashMap<>();
 
     private IHyracksClientConnection hyracksClientConnection;
     private HyracksDataset hyracksDataset;
-    /**
-     * Following two instances are used only if local hyracks cluster is used
-     */
+    /** Following two instances are used only if local hyracks cluster is used */
     private ClusterControllerService clusterControllerService;
     private NodeControllerService[] nodeControllerServices;
 
@@ -115,16 +117,13 @@ public class VXQuery {
 
         setState(State.STARTING);
 
-        // TODO: 6/23/17 Check problems with concurrency and increase thread count
-        workers = Executors.newSingleThreadExecutor();
-
         if (System.getProperty(HYRACKS_CLIENT_IP) == null || System.getProperty(HYRACKS_CLIENT_PORT) == null) {
             LOGGER.log(Level.INFO, "Using local hyracks cluster");
             try {
                 startLocalHyracks();
             } catch (Exception e) {
                 setState(State.STOPPED);
-                LOGGER.log(Level.SEVERE, "Error occurred when starting local hyracks", e);
+                LOGGER.log(SEVERE, "Error occurred when starting local hyracks", e);
                 throw new VXQueryRuntimeException("Unable to start local hyracks", e);
             }
         } else {
@@ -134,7 +133,7 @@ public class VXQuery {
             try {
                 hyracksClientConnection = new HyracksConnection(hyracksClientIp, hyracksClientPort);
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, String.format("Unable to create a hyracks client connection to %s:%d", hyracksClientIp, hyracksClientPort));
+                LOGGER.log(SEVERE, String.format("Unable to create a hyracks client connection to %s:%d", hyracksClientIp, hyracksClientPort));
                 throw new VXQueryRuntimeException("Unable to create a hyracks client connection", e);
             }
 
@@ -145,71 +144,21 @@ public class VXQuery {
         LOGGER.log(Level.INFO, "VXQuery started successfully");
     }
 
-    public synchronized void stop() {
-        if (!State.STOPPED.equals(state)) {
-            setState(State.STOPPING);
-            workers.shutdownNow();
-
-            try {
-                stopLocalHyracks();
-            } catch (Exception e) {
-                setState(State.STARTED);
-                LOGGER.log(Level.SEVERE, "Error occurred when stopping VXQuery", e);
-                throw new VXQueryRuntimeException("Unable to stop local hyracks", e);
-            }
-
-            setState(State.STOPPED);
-            LOGGER.log(Level.INFO, "VXQuery stopped successfully");
-        } else {
-            LOGGER.log(Level.INFO, "VXQuery is already in state : " + state);
-        }
-    }
-
     private synchronized void setState(State newState) {
         state = newState;
     }
 
-    /**
-     * Creates a new Hyracks connection with the client IP address and port. Then the query is executed.
-     *
-     * @throws Exception
-     */
-    public QueryResponse execute(QueryRequest request) {
+    public APIResponse execute(QueryRequest request) {
         if (!State.STARTED.equals(state)) {
-            throw new IllegalStateException("VXQuery hasn't started yet");
+            throw new IllegalStateException("VXQuery is at state : " + state);
         }
 
-        QueryResponse response = prepareQueryResponse(request);
-        try {
-            executeQuery(request, response);
-            response.setStatus(Status.SUCCESS.toString());
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error occurred when running the query", e);
-            response.setStatus(Status.FAILED.toString());
-        }
-        return response;
+        return executeQuery(request);
     }
 
-    /**
-     * Prepares a new {@link QueryResponse} by assigning a new UUID as the request ID. Also the statement will be
-     * added to the response.
-     *
-     * @param request {@link QueryRequest} received
-     * @return query response instance to be sent to the caller
-     */
-    private QueryResponse prepareQueryResponse(QueryRequest request) {
-        QueryResponse response = new QueryResponse();
-        response.setRequestId(request.getRequestId());
-        response.setStatement(request.getStatement());
-        return response;
-    }
+    private APIResponse executeQuery(final QueryRequest request) {
+        QueryResponse response = APIResponse.newQueryResponse(request.getRequestId());
 
-    /**
-     * Run the statement given in the {@link QueryRequest}
-     *
-     * @throws Exception
-     */
-    private void executeQuery(final QueryRequest request, QueryResponse response) throws Exception {
         String query = request.getStatement();
         response.setStatement(query);
 
@@ -221,103 +170,114 @@ public class VXQuery {
         Date end;
 
         // Adding a query compilation listener
-        VXQueryCompilationListener listener = new VXQueryCompilationListener(response, request.isShowAbstractSyntaxTree(),
-                request.isShowTranslatedExpressionTree(), request.isShowOptimizedExpressionTree(), request.isShowRuntimePlan());
+        VXQueryCompilationListener listener = new VXQueryCompilationListener(response,
+                                                                                    request.isShowAbstractSyntaxTree(),
+                                                                                    request.isShowTranslatedExpressionTree(),
+                                                                                    request.isShowOptimizedExpressionTree(),
+                                                                                    request.isShowRuntimePlan());
 
         // Obtaining the node controller information from hyracks client connection
-        Map<String, NodeControllerInfo> nodeControllerInfos = hyracksClientConnection.getNodeControllerInfos();
+        Map<String, NodeControllerInfo> nodeControllerInfos = null;
+        try {
+            nodeControllerInfos = hyracksClientConnection.getNodeControllerInfos();
+        } catch (HyracksException e) {
+            return APIResponse.newErrorResponse(request.getRequestId(),
+                    Error.builder()
+                            .withCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                            .withMessage("Hyracks connection problem : " + e.getMessage())
+                            .build());
+        }
 
         start = request.isShowMetrics() ? new Date() : null;
 
         // Compiling the XQuery given
-        final XMLQueryCompiler compiler = new XMLQueryCompiler(listener, nodeControllerInfos, request.getFrameSize(),
-                vxQueryConfig.getAvailableProcessors(), vxQueryConfig.getJoinHashSize(), vxQueryConfig.getMaximumDataSize(), vxQueryConfig.getHdfsConf());
+        final XMLQueryCompiler compiler = new XMLQueryCompiler(listener, nodeControllerInfos,
+                                                                      request.getFrameSize(),
+                                                                      vxQueryConfig.getAvailableProcessors(),
+                                                                      vxQueryConfig.getJoinHashSize(),
+                                                                      vxQueryConfig.getMaximumDataSize(),
+                                                                      vxQueryConfig.getHdfsConf());
         CompilerControlBlock compilerControlBlock = new CompilerControlBlock(new StaticContextImpl(RootStaticContextImpl.INSTANCE),
-                resultSetId, null);
-        compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization());
+                                                                                    resultSetId, null);
+        try {
+            compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization());
+        } catch (AlgebricksException | SystemException e) {
+            return APIResponse.newErrorResponse(request.getRequestId(),
+                    Error.builder()
+                            .withCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                            .withMessage("Query compilation failure : " + e.getMessage())
+                            .build());
+        }
 
         if (request.isShowMetrics()) {
             end = new Date();
             response.getMetrics().setCompileTime(end.getTime() - start.getTime());
         }
 
-        if (request.isCompileOnly()) {
-            return;
-        }
+        if (!request.isCompileOnly()) {
+            Module module = compiler.getModule();
+            JobSpecification js = module.getHyracksJobSpecification();
+            DynamicContext dCtx = new DynamicContextImpl(module.getModuleContext());
+            js.setGlobalJobDataFactory(new VXQueryGlobalDataFactory(dCtx.createFactory()));
 
-        Future<QueryResultResponse> future = workers.submit(new Callable<QueryResultResponse>() {
-            @Override
-            public QueryResultResponse call() {
-                Module module = compiler.getModule();
-                JobSpecification js = module.getHyracksJobSpecification();
-                DynamicContext dCtx = new DynamicContextImpl(module.getModuleContext());
-                js.setGlobalJobDataFactory(new VXQueryGlobalDataFactory(dCtx.createFactory()));
-
-                return runQuery(request, js, resultSetId);
-            }
-        });
-        resultMap.put(resultSetId.getId(), future);
-    }
-
-    private QueryResultResponse runQuery(QueryRequest request, JobSpecification js, ResultSetId resultSetId) {
-        QueryResultSuccessResponse successResponse = new QueryResultSuccessResponse();
-        successResponse.setRequestId(request.getRequestId());
-        successResponse.setResultId(resultSetId.getId());
-        successResponse.setStatus(Status.SUCCESS.toString());
-
-        long elapsedTime = 0;
-        Date start, end;
-
-        String result;
-        // Repeat execution for given times. Defaults to 1 iteration.
-        for (int i = 0; i < request.getRepeatExecutions(); ++i) {
-            start = request.isShowMetrics() ? new Date() : null;
             try {
-                result = runJob(resultSetId, js);
-                successResponse.setResults(result);
+                JobId jobId = hyracksClientConnection.startJob(js, EnumSet.of(JobFlag.PROFILE_RUNTIME));
+                jobContexts.put(resultSetId.getId(), new HyracksJobContext(jobId, js.getFrameSize(), resultSetId));
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error occurred when running job", e);
-                QueryResultErrorResponse errorResponse = new QueryResultErrorResponse();
-                errorResponse.setRequestId(request.getRequestId());
-                errorResponse.setResultId(resultSetId.getId());
-                errorResponse.setStatus(Status.FAILED.toString());
-                errorResponse.setMessage(e.getMessage());
-                return errorResponse;
-            }
-
-            // Set the elapsed time if requested
-            if (request.isShowMetrics()) {
-                end = new Date();
-                elapsedTime += end.getTime() - start.getTime();
-                successResponse.getMetrics().setElapsedTime(elapsedTime);
+                LOGGER.log(SEVERE, "Error occurred when submitting job to hyracks for request : " + request.getRequestId(), e);
+                return APIResponse.newErrorResponse(request.getRequestId(),
+                        Error.builder()
+                                .withCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                                .withMessage("Error occurred when starting hyracks job")
+                                .build());
             }
         }
-        return successResponse;
+        return response;
     }
+
+    // TODO: 7/12/17 Allow multiple executions of the same query
 
     /**
-     * Creates a Hyracks dataset, if not already existing with the job frame size, and 1 reader. Allocates a new buffer
-     * of size specified in the frame of Hyracks node. Creates new dataset reader with the current job ID and result
-     * set ID. Outputs the string in buffer for each frame.
+     * Returns the query results for a given result set id
      *
-     * @param spec JobSpecification object, containing frame size. Current specified job.
-     * @throws Exception
+     * @param request {@link QueryResultRequest} with result ID required
+     * @return query result
      */
-    private String runJob(ResultSetId resultSetId, JobSpecification spec) throws Exception {
+    public APIResponse getResult(QueryResultRequest request) {
+        if (jobContexts.containsKey(request.getResultId())) {
+            QueryResultResponse resultResponse = APIResponse.newQueryResultResponse(request.getRequestId());
+            try {
+                readResults(jobContexts.get(request.getResultId()), resultResponse);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error occurred when reading results for id : " + request.getResultId());
+                return APIResponse.newErrorResponse(request.getRequestId(),
+                        Error.builder()
+                                .withCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                                .withMessage("Error occurred when reading results from hyracks for result ID : " + request.getResultId())
+                                .build());
+            }
+            return resultResponse;
+        } else {
+            return APIResponse.newErrorResponse(request.getRequestId(),
+                    Error.builder()
+                            .withCode(HttpResponseStatus.NOT_FOUND.code())
+                            .withMessage("No query found for result ID : " + request.getResultId())
+                            .build());
+        }
+    }
+
+    private void readResults(HyracksJobContext jobContext, QueryResultResponse resultResponse) throws Exception {
         int nReaders = 1;
 
         if (hyracksDataset == null) {
-            hyracksDataset = new HyracksDataset(hyracksClientConnection, spec.getFrameSize(), nReaders);
+            hyracksDataset = new HyracksDataset(hyracksClientConnection, jobContext.getFrameSize(), nReaders);
         }
 
-        JobId jobId = hyracksClientConnection.startJob(spec, EnumSet.of(JobFlag.PROFILE_RUNTIME));
-
-        FrameManager resultDisplayFrameMgr = new FrameManager(spec.getFrameSize());
+        FrameManager resultDisplayFrameMgr = new FrameManager(jobContext.getFrameSize());
         IFrame frame = new VSizeFrame(resultDisplayFrameMgr);
-        IHyracksDatasetReader reader = hyracksDataset.createReader(jobId, resultSetId);
+        IHyracksDatasetReader reader = hyracksDataset.createReader(jobContext.getJobId(), jobContext.getResultSetId());
         IFrameTupleAccessor frameTupleAccessor = new ResultFrameTupleAccessor();
 
-        // TODO: 7/3/17 Instead of keeping results in RAM, write to temporary files
         OutputStream resultStream = new ByteArrayOutputStream();
 
         try (PrintWriter writer = new PrintWriter(resultStream, true)) {
@@ -327,50 +287,11 @@ public class VXQuery {
                 frame.getBuffer().clear();
             }
         }
-        hyracksClientConnection.waitForCompletion(jobId);
 
-        LOGGER.log(Level.INFO, String.format("Result for resultId %d completed", resultSetId.getId()));
-        return resultStream.toString();
-    }
-
-    /**
-     * Returns the query results for a given result set id
-     *
-     * @param resultId ID of the result set
-     * @return query result
-     */
-    public QueryResultResponse getResult(long resultId) {
-        String errorMsg;
-        if (resultMap.containsKey(resultId)) {
-            if (resultMap.get(resultId).isDone()) {
-                try {
-                    return resultMap.get(resultId).get();
-                } catch (InterruptedException e) {
-                    errorMsg = "Query execution job has been interrupted";
-                } catch (ExecutionException e) {
-                    errorMsg = "Error occurred when executing the query";
-                }
-
-                QueryResultErrorResponse response = new QueryResultErrorResponse();
-                response.setResultId(resultId);
-                response.setStatus(Status.FAILED.toString());
-                response.setMessage(errorMsg);
-                return response;
-            } else {
-                QueryResultErrorResponse response = new QueryResultErrorResponse();
-                response.setResultId(resultId);
-                response.setStatus(Status.INCOMPLETE.toString());
-                response.setMessage("Query execution hasn't finished yet");
-                return response;
-            }
-
-        } else {
-            QueryResultErrorResponse response = new QueryResultErrorResponse();
-            response.setResultId(resultId);
-            response.setStatus(Status.NOT_FOUND.toString());
-            response.setMessage("No query is found for result ID : " + resultId);
-            return response;
-        }
+        // TODO: 7/12/17 Set metrics
+        hyracksClientConnection.waitForCompletion(jobContext.getJobId());
+        LOGGER.log(Level.INFO, String.format("Result for resultId %d completed", jobContext.getResultSetId().getId()));
+        resultResponse.setResults(resultStream.toString());
     }
 
     /**
@@ -413,7 +334,6 @@ public class VXQuery {
             ncConfig.dataIPAddress = localAddress;
             ncConfig.resultIPAddress = localAddress;
             ncConfig.nodeId = "nc" + (i + 1);
-            //TODO: enable index folder as a cli option for on-the-fly indexing queries
             ncConfig.ioDevices = Files.createTempDirectory(ncConfig.nodeId).toString();
             nodeControllerServices[i] = new NodeControllerService(ncConfig);
             nodeControllerServices[i].start();
@@ -432,6 +352,28 @@ public class VXQuery {
             nodeControllerServices[i].stop();
         }
         clusterControllerService.stop();
+    }
+
+    public synchronized void stop() {
+        if (!State.STOPPED.equals(state)) {
+            setState(State.STOPPING);
+
+            try {
+                if (System.getProperty(HYRACKS_CLIENT_IP) == null || System.getProperty(HYRACKS_CLIENT_PORT) == null) {
+                    LOGGER.log(Level.INFO, "Stopping local hyracks cluster");
+                    stopLocalHyracks();
+                }
+            } catch (Exception e) {
+                setState(State.STARTED);
+                LOGGER.log(SEVERE, "Error occurred when stopping VXQuery", e);
+                throw new VXQueryRuntimeException("Unable to stop local hyracks", e);
+            }
+
+            setState(State.STOPPED);
+            LOGGER.log(Level.INFO, "VXQuery stopped successfully");
+        } else {
+            LOGGER.log(Level.INFO, "VXQuery is already in state : " + state);
+        }
     }
 
     public State getState() {
@@ -482,7 +424,7 @@ public class VXQuery {
                 try {
                     response.setRuntimePlan(jobSpec.toJSON().toString());
                 } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, "Error occurred when obtaining runtime plan from job specification : " + jobSpec.toString(), e);
+                    LOGGER.log(SEVERE, "Error occurred when obtaining runtime plan from job specification : " + jobSpec.toString(), e);
                 }
             }
         }
@@ -498,13 +440,13 @@ public class VXQuery {
         private StringBuilder appendPrettyPlan(StringBuilder sb, Module module) {
             try {
                 ILogicalExpressionVisitor<String, Integer> ev = new VXQueryLogicalExpressionPrettyPrintVisitor(
-                        module.getModuleContext());
+                                                                                                                      module.getModuleContext());
                 AlgebricksAppendable buffer = new AlgebricksAppendable();
                 LogicalOperatorPrettyPrintVisitor v = new LogicalOperatorPrettyPrintVisitor(buffer, ev);
                 PlanPrettyPrinter.printPlan(module.getBody(), v, 0);
                 sb.append(buffer.toString());
             } catch (AlgebricksException e) {
-                LOGGER.log(Level.SEVERE, "Error occurred when pretty printing expression : " + e.getMessage());
+                LOGGER.log(SEVERE, "Error occurred when pretty printing expression : " + e.getMessage());
             }
             return sb;
         }

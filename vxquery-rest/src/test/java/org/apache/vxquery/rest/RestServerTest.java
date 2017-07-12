@@ -18,7 +18,6 @@
 package org.apache.vxquery.rest;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.apache.commons.httpclient.HttpStatus;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -30,9 +29,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.rest.core.Status;
 import org.apache.vxquery.rest.response.QueryResponse;
-import org.apache.vxquery.rest.response.QueryResultErrorResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
-import org.apache.vxquery.rest.response.QueryResultSuccessResponse;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -41,7 +38,11 @@ import org.junit.Test;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +50,11 @@ import java.util.logging.Logger;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
-import static org.apache.vxquery.rest.Constants.Parameters.*;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_AST;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_OET;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_RP;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_TET;
+import static org.apache.vxquery.rest.Constants.Parameters.STATEMENT;
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
 
 public class RestServerTest {
@@ -59,11 +64,11 @@ public class RestServerTest {
     private static final String QUERY_RESULT_ENDPOINT = "/vxquery/query/result/";
     private static final String QUERY = "for $x in doc(\"src/test/resources/dblp.xml\")/dblp/proceedings where $x/year=1990 return $x/title";
     private static final String RESULT = "<title>Advances in Database Technology - EDBT&apos;90.  International Conference on Extending Database Technology, Venice, Italy, March 26-30, 1990, Proceedings</title>\n" +
-            "<title>Proceedings of the Sixth International Conference on Data Engineering, February 5-9, 1990, Los Angeles, California, USA</title>\n" +
-            "<title>ICDT&apos;90, Third International Conference on Database Theory, Paris, France, December 12-14, 1990, Proceedings</title>\n" +
-            "<title>Proceedings of the Ninth ACM SIGACT-SIGMOD-SIGART Symposium on Principles of Database Systems, April 2-4, 1990, Nashville, Tennessee</title>\n" +
-            "<title>16th International Conference on Very Large Data Bases, August 13-16, 1990, Brisbane, Queensland, Australia, Proceedings.</title>\n" +
-            "<title>Proceedings of the 1990 ACM SIGMOD International Conference on Management of Data, Atlantic City, NJ, May 23-25, 1990.</title>\n";
+                                                 "<title>Proceedings of the Sixth International Conference on Data Engineering, February 5-9, 1990, Los Angeles, California, USA</title>\n" +
+                                                 "<title>ICDT&apos;90, Third International Conference on Database Theory, Paris, France, December 12-14, 1990, Proceedings</title>\n" +
+                                                 "<title>Proceedings of the Ninth ACM SIGACT-SIGMOD-SIGART Symposium on Principles of Database Systems, April 2-4, 1990, Nashville, Tennessee</title>\n" +
+                                                 "<title>16th International Conference on Very Large Data Bases, August 13-16, 1990, Brisbane, Queensland, Australia, Proceedings.</title>\n" +
+                                                 "<title>Proceedings of the 1990 ACM SIGMOD International Conference on Management of Data, Atlantic City, NJ, May 23-25, 1990.</title>\n";
 
     private static VXQueryApplication application;
     private static RestServer restServer;
@@ -89,16 +94,16 @@ public class RestServerTest {
 
     private void runTest(String contentType) throws Exception {
         URI queryEndpointUri = new URIBuilder()
-                .setScheme("http")
-                .setHost("localhost")
-                .setPort(restServer.getPort())
-                .setPath(QUERY_ENDPOINT)
-                .addParameter(STATEMENT, QUERY)
-                .addParameter(SHOW_AST, "true")
-                .addParameter(SHOW_TET, "true")
-                .addParameter(SHOW_OET, "true")
-                .addParameter(SHOW_RP, "true")
-                .build();
+                                       .setScheme("http")
+                                       .setHost("localhost")
+                                       .setPort(restServer.getPort())
+                                       .setPath(QUERY_ENDPOINT)
+                                       .addParameter(STATEMENT, QUERY)
+                                       .addParameter(SHOW_AST, "true")
+                                       .addParameter(SHOW_TET, "true")
+                                       .addParameter(SHOW_OET, "true")
+                                       .addParameter(SHOW_RP, "true")
+                                       .build();
 
         QueryResponse queryResponse = getQueryResponse(queryEndpointUri, contentType);
         Assert.assertNotNull(queryResponse);
@@ -112,34 +117,20 @@ public class RestServerTest {
         Assert.assertNotNull(queryResponse.getOptimizedExpressionTree());
         Assert.assertNotNull(queryResponse.getRuntimePlan());
 
-        QueryResultResponse resultResponse;
-        do {
-            resultResponse = getQueryResultResponse(queryResponse.getResultId(), contentType);
-            Assert.assertNotNull(resultResponse);
-            Assert.assertNotNull(resultResponse.getStatus());
+        QueryResultResponse resultResponse = getQueryResultResponse(queryResponse.getResultId(), contentType);
+        Assert.assertNotNull(resultResponse);
+        Assert.assertNotNull(resultResponse.getStatus());
 
-            if (!Status.SUCCESS.toString().equals(resultResponse.getStatus())) {
-                Assert.assertTrue(resultResponse instanceof QueryResultErrorResponse);
-                Assert.assertEquals(Status.INCOMPLETE.toString(), resultResponse.getStatus());
-                Thread.sleep(5000);
-                continue;
-            }
+        Assert.assertNotNull(resultResponse.getResults());
+        Assert.assertNotNull(resultResponse.getRequestId());
+        Assert.assertEquals(RESULT.replace("\n", ""), resultResponse.getResults().replace("\n", ""));
 
-            Assert.assertEquals(Status.SUCCESS.toString(), resultResponse.getStatus());
-            Assert.assertTrue(resultResponse instanceof QueryResultSuccessResponse);
-
-            QueryResultSuccessResponse successResponse = (QueryResultSuccessResponse) resultResponse;
-            Assert.assertNotNull(successResponse.getResults());
-            Assert.assertNotNull(resultResponse.getRequestId());
-            Assert.assertEquals(RESULT.replace("\n", ""), successResponse.getResults().replace("\n", ""));
-            break;
-        } while (!Status.FAILED.toString().equals(resultResponse.getStatus()));
     }
 
     private static QueryResponse getQueryResponse(URI uri, String accepts) throws IOException, JAXBException {
         CloseableHttpClient httpClient = HttpClients.custom()
-                .setConnectionTimeToLive(20, TimeUnit.SECONDS)
-                .build();
+                                                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
+                                                 .build();
 
         try {
             HttpGet request = new HttpGet(uri);
@@ -162,15 +153,15 @@ public class RestServerTest {
 
     private static QueryResultResponse getQueryResultResponse(long resultId, String accepts) throws IOException, URISyntaxException, JAXBException {
         URI queryResultEndpointUri = new URIBuilder()
-                .setScheme("http")
-                .setHost("localhost")
-                .setPort(restServer.getPort())
-                .setPath(QUERY_RESULT_ENDPOINT + String.valueOf(resultId))
-                .build();
+                                             .setScheme("http")
+                                             .setHost("localhost")
+                                             .setPort(restServer.getPort())
+                                             .setPath(QUERY_RESULT_ENDPOINT + String.valueOf(resultId))
+                                             .build();
 
         CloseableHttpClient httpClient = HttpClients.custom()
-                .setConnectionTimeToLive(20, TimeUnit.SECONDS)
-                .build();
+                                                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
+                                                 .build();
 
         try {
             HttpGet request = new HttpGet(queryResultEndpointUri);
@@ -178,17 +169,13 @@ public class RestServerTest {
 
             try (CloseableHttpResponse httpQueryResponse = httpClient.execute(request)) {
                 Assert.assertEquals(accepts, httpQueryResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                Assert.assertEquals(httpQueryResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
 
                 HttpEntity entity = httpQueryResponse.getEntity();
                 Assert.assertNotNull(entity);
 
                 String response = readEntity(entity);
-
-                if (httpQueryResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                    return mapEntity(response, QueryResultSuccessResponse.class, accepts);
-                } else {
-                    return mapEntity(response, QueryResultErrorResponse.class, accepts);
-                }
+                return mapEntity(response, QueryResultResponse.class, accepts);
             }
         } finally {
             HttpClientUtils.closeQuietly(httpClient);

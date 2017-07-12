@@ -17,24 +17,33 @@
 
 package org.apache.vxquery.rest.response;
 
+import org.apache.vxquery.rest.core.Status;
+
+import javax.xml.bind.annotation.XmlRootElement;
+
+@XmlRootElement
 public class QueryResultResponse extends APIResponse {
 
-    private String requestId;
-    private long resultId;
+    private String results;
+    private Metrics metrics = new Metrics();
 
-    public String getRequestId() {
-        return requestId;
+    public QueryResultResponse() {
+        super(Status.SUCCESS.toString());
     }
 
-    public void setRequestId(String requestId) {
-        this.requestId = requestId;
+    public String getResults() {
+        return results;
     }
 
-    public long getResultId() {
-        return resultId;
+    public void setResults(String results) {
+        this.results = results;
     }
 
-    public void setResultId(long resultId) {
-        this.resultId = resultId;
+    public Metrics getMetrics() {
+        return metrics;
+    }
+
+    public void setMetrics(Metrics metrics) {
+        this.metrics = metrics;
     }
 }

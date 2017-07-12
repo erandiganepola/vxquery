@@ -17,17 +17,30 @@
 
 package org.apache.vxquery.rest.core;
 
-public enum Status {
-    SUCCESS("success"),
-    FATAL("fatal");
+import org.apache.hyracks.api.dataset.ResultSetId;
+import org.apache.hyracks.api.job.JobId;
 
-    private final String name;
+public class HyracksJobContext {
 
-    Status(String name) {
-        this.name = name;
+    private JobId jobId;
+    private int frameSize;
+    private ResultSetId resultSetId;
+
+    public HyracksJobContext(JobId jobId, int frameSize, ResultSetId resultSetId) {
+        this.jobId = jobId;
+        this.frameSize = frameSize;
+        this.resultSetId = resultSetId;
     }
 
-    public String toString() {
-        return name;
+    public JobId getJobId() {
+        return jobId;
+    }
+
+    public int getFrameSize() {
+        return frameSize;
+    }
+
+    public ResultSetId getResultSetId() {
+        return resultSetId;
     }
 }

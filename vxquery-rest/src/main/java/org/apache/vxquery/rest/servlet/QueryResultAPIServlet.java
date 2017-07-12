@@ -17,14 +17,14 @@
 
 package org.apache.vxquery.rest.servlet;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.hyracks.http.api.IServletRequest;
 import org.apache.vxquery.rest.core.VXQuery;
-import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.APIResponse;
-import org.apache.vxquery.rest.response.QueryResultResponse;
+import org.apache.vxquery.rest.response.Error;
 
-import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
@@ -43,31 +43,22 @@ public class QueryResultAPIServlet extends RestAPIServlet {
     }
 
     @Override
-    protected APIResponse doHandle(IServletRequest request) throws IOException {
-        QueryResultRequest resultRequest = getQueryResultRequest(request);
-        LOGGER.log(Level.INFO, String.format("Received a result request with resultId : %d", resultRequest.getResultId()));
-        QueryResultResponse queryResultResponse;
-        try {
-            queryResultResponse = vxQuery.getResult(resultRequest.getResultId());
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error occurred when trying to get results for resultId: " + resultRequest.getResultId(), e);
-            throw new VXQueryServletRuntimeException("Unable to fetch result for id : " + resultRequest.getResultId(), e);
-        }
-        return queryResultResponse;
-    }
-
-    private QueryResultRequest getQueryResultRequest(IServletRequest request) {
+    protected APIResponse doHandle(IServletRequest request) {
         String uri = request.getHttpRequest().uri();
         long resultId;
         try {
             resultId = Long.parseLong(uri.substring(uri.lastIndexOf("/") + 1));
         } catch (NumberFormatException e) {
             LOGGER.log(Level.SEVERE, "Result ID could not be retrieved from URL");
-            throw new IllegalArgumentException("Result ID is required as a path param");
+            return APIResponse.newErrorResponse(null,
+                    Error.builder()
+                            .withCode(HttpResponseStatus.BAD_REQUEST.code())
+                            .withMessage("Result ID couldn't be retrieved from URL")
+                            .build());
         }
 
-        QueryResultRequest resultRequest = new QueryResultRequest();
-        resultRequest.setResultId(resultId);
-        return resultRequest;
+        QueryResultRequest resultRequest = new QueryResultRequest(resultId, UUID.randomUUID().toString());
+        LOGGER.log(Level.INFO, String.format("Received a result request with resultId : %d", resultRequest.getResultId()));
+        return vxQuery.getResult(resultRequest);
     }
 }

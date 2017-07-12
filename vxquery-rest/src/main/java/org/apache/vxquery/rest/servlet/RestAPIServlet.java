@@ -30,9 +30,9 @@ import org.apache.vxquery.rest.core.Status;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
 import org.apache.vxquery.rest.response.APIResponse;
-import org.apache.vxquery.rest.response.QueryResultErrorResponse;
+import org.apache.vxquery.rest.response.ErrorResponse;
 import org.apache.vxquery.rest.response.QueryResponse;
-import org.apache.vxquery.rest.response.QueryResultSuccessResponse;
+import org.apache.vxquery.rest.response.QueryResultResponse;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -58,7 +58,7 @@ public abstract class RestAPIServlet extends AbstractServlet {
         super(ctx, paths);
         LOGGER = Logger.getLogger(this.getClass().getName());
         try {
-            jaxbContext = JAXBContext.newInstance(QueryResultSuccessResponse.class, QueryResponse.class, QueryResultErrorResponse.class);
+            jaxbContext = JAXBContext.newInstance(QueryResultResponse.class, QueryResponse.class, ErrorResponse.class);
         } catch (JAXBException e) {
             LOGGER.log(Level.SEVERE, "Error occurred when creating JAXB context", e);
             throw new VXQueryRuntimeException("Unable to load JAXBContext", e);
@@ -78,9 +78,6 @@ public abstract class RestAPIServlet extends AbstractServlet {
                 setResponseStatus(response, entity);
                 setEntity(request, response, entity);
             }
-        } catch (VXQueryServletRuntimeException e) {
-            response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-            LOGGER.log(Level.SEVERE, "Failure handling request", e);
         } catch (IOException e) {
             response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
             LOGGER.log(Level.SEVERE, "Error occurred when setting content type", e);
@@ -132,14 +129,20 @@ public abstract class RestAPIServlet extends AbstractServlet {
     private void setResponseStatus(IServletResponse response, APIResponse entity) {
         if (Status.SUCCESS.toString().equals(entity.getStatus())) {
             response.setStatus(HttpResponseStatus.OK);
-        } else if (Status.FAILED.toString().equals(entity.getStatus())) {
-            response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
-        } else if (Status.NOT_FOUND.toString().equals(entity.getStatus())) {
-            response.setStatus(HttpResponseStatus.NOT_FOUND);
-        } else if (Status.INCOMPLETE.toString().equals(entity.getStatus())) {
-            response.setStatus(HttpResponseStatus.NOT_FOUND);
-        } else {
-            response.setStatus(HttpResponseStatus.INTERNAL_SERVER_ERROR);
+        } else if (Status.FATAL.toString().equals(entity.getStatus())) {
+            HttpResponseStatus status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+            if (entity instanceof ErrorResponse) {
+                switch (((ErrorResponse) entity).getError().getCode()) {
+                    case 405:
+                        // hyracks http don't have a status for 405
+                        status = HttpResponseStatus.BAD_REQUEST;
+                        break;
+                    default:
+                        break;
+                }
+
+            }
+            response.setStatus(status);
         }
     }
 
@@ -149,7 +152,6 @@ public abstract class RestAPIServlet extends AbstractServlet {
      *
      * @param request {@link IServletRequest} received
      * @return Object to be set as the entity of the response
-     * @throws IOException
      */
-    protected abstract APIResponse doHandle(IServletRequest request) throws IOException;
+    protected abstract APIResponse doHandle(IServletRequest request);
 }

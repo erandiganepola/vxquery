@@ -16,6 +16,8 @@
  */
 package org.apache.vxquery.rest.response;
 
+import org.apache.vxquery.rest.core.Status;
+
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
@@ -24,11 +26,9 @@ import javax.xml.bind.annotation.XmlRootElement;
  * @author Erandi Ganepola
  */
 @XmlRootElement
-public class QueryResponse extends APIResponse{
+public class QueryResponse extends APIResponse {
 
     private long resultId;
-    private String requestId;
-    private String status;
     private String resultUrl;
     private String statement;
     private String abstractSyntaxTree;
@@ -37,20 +37,16 @@ public class QueryResponse extends APIResponse{
     private String runtimePlan;
     private Metrics metrics = new Metrics();
 
+    public QueryResponse() {
+        super(Status.SUCCESS.toString());
+    }
+
     public long getResultId() {
         return resultId;
     }
 
     public void setResultId(long resultId) {
         this.resultId = resultId;
-    }
-
-    public String getRequestId() {
-        return requestId;
-    }
-
-    public void setRequestId(String requestId) {
-        this.requestId = requestId;
     }
 
     public String getResultUrl() {

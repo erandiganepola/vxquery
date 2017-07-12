@@ -21,9 +21,8 @@ import org.apache.vxquery.rest.core.VXQuery;
 import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.APIResponse;
-import org.apache.vxquery.rest.response.QueryResponse;
+import org.apache.vxquery.rest.response.Error;
 
-import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
@@ -45,18 +44,25 @@ public class QueryAPIServlet extends RestAPIServlet {
     }
 
     @Override
-    protected APIResponse doHandle(IServletRequest request) throws IOException {
+    protected APIResponse doHandle(IServletRequest request) {
         LOGGER.log(Level.INFO, String.format("Received a query request with query : %s", request.getParameter("statement")));
 
-        QueryRequest queryRequest = getQueryRequest(request);
-        QueryResponse queryResponse = null;
+        QueryRequest queryRequest;
         try {
-            queryResponse = vxQuery.execute(queryRequest);
+            queryRequest = getQueryRequest(request);
+        } catch (IllegalArgumentException e) {
+            return APIResponse.newErrorResponse(null, Error.builder()
+                                                              .withCode(405)
+                                                              .withMessage("Invalid input")
+                                                              .build());
+        }
+
+        try {
+            return vxQuery.execute(queryRequest);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when trying to execute query : " + queryRequest.getStatement(), e);
             throw new VXQueryServletRuntimeException("Unable to execute the query given", e);
         }
-        return queryResponse;
     }
 
     private QueryRequest getQueryRequest(IServletRequest request) {
@@ -64,15 +70,14 @@ public class QueryAPIServlet extends RestAPIServlet {
             throw new IllegalArgumentException("Parameter 'statement' is required to handle the request");
         }
 
-        QueryRequest queryRequest = new QueryRequest(UUID.randomUUID().toString());
-        queryRequest.setStatement(request.getParameter(STATEMENT));
-        queryRequest.setCompileOnly("true".equals(request.getParameter(COMPILE_ONLY)));
-        queryRequest.setShowMetrics("true".equals(request.getParameter(METRICS)));
+        QueryRequest queryRequest = new QueryRequest(UUID.randomUUID().toString(), request.getParameter(STATEMENT));
+        queryRequest.setCompileOnly(Boolean.parseBoolean(request.getParameter(COMPILE_ONLY)));
+        queryRequest.setShowMetrics(Boolean.parseBoolean(request.getParameter(METRICS)));
 
-        queryRequest.setShowAbstractSyntaxTree("true".equals(request.getParameter(SHOW_AST)));
-        queryRequest.setShowTranslatedExpressionTree("true".equals(request.getParameter(SHOW_TET)));
-        queryRequest.setShowOptimizedExpressionTree("true".equals(request.getParameter(SHOW_OET)));
-        queryRequest.setShowRuntimePlan("true".equals(request.getParameter(SHOW_RP)));
+        queryRequest.setShowAbstractSyntaxTree(Boolean.parseBoolean(request.getParameter(SHOW_AST)));
+        queryRequest.setShowTranslatedExpressionTree(Boolean.parseBoolean(request.getParameter(SHOW_TET)));
+        queryRequest.setShowOptimizedExpressionTree(Boolean.parseBoolean(request.getParameter(SHOW_OET)));
+        queryRequest.setShowRuntimePlan(Boolean.parseBoolean(request.getParameter(SHOW_RP)));
 
         if (request.getParameter(OPTIMIZATION) != null) {
             queryRequest.setOptimization(Integer.parseInt(request.getParameter(OPTIMIZATION)));

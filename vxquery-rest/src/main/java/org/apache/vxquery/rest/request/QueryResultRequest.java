@@ -26,13 +26,15 @@ public class QueryResultRequest {
 
     private long resultId;
     private boolean metrics = false;
+    private String requestId;
+
+    public QueryResultRequest(long resultId, String requestId) {
+        this.resultId = resultId;
+        this.requestId = requestId;
+    }
 
     public long getResultId() {
         return resultId;
-    }
-
-    public void setResultId(long resultId) {
-        this.resultId = resultId;
     }
 
     public boolean isMetrics() {
@@ -41,5 +43,9 @@ public class QueryResultRequest {
 
     public void setMetrics(boolean metrics) {
         this.metrics = metrics;
+    }
+
+    public String getRequestId() {
+        return requestId;
     }
 }
