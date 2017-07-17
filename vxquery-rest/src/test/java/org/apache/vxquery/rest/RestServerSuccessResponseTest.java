@@ -18,7 +18,6 @@
 package org.apache.vxquery.rest;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
-import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -30,23 +29,14 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.rest.core.Status;
 import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
@@ -56,12 +46,16 @@ import static org.apache.vxquery.rest.Constants.Parameters.SHOW_RP;
 import static org.apache.vxquery.rest.Constants.Parameters.SHOW_TET;
 import static org.apache.vxquery.rest.Constants.Parameters.STATEMENT;
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
+import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
-public class RestServerTest {
+/**
+ * This class tests the success responses received for XQueries submitted. i.e we are submitting correct queries which
+ * are expected to return a predictable result.
+ *
+ * @author Erandi Ganepola
+ */
+public class RestServerSuccessResponseTest extends AbstractRestServerTest {
 
-    private static final Logger LOGGER = Logger.getLogger(RestServerTest.class.getName());
-
-    private static final String QUERY_RESULT_ENDPOINT = "/vxquery/query/result/";
     private static final String QUERY = "for $x in doc(\"src/test/resources/dblp.xml\")/dblp/proceedings where $x/year=1990 return $x/title";
     private static final String RESULT = "<title>Advances in Database Technology - EDBT&apos;90.  International Conference on Extending Database Technology, Venice, Italy, March 26-30, 1990, Proceedings</title>\n" +
                                                  "<title>Proceedings of the Sixth International Conference on Data Engineering, February 5-9, 1990, Los Angeles, California, USA</title>\n" +
@@ -70,35 +64,53 @@ public class RestServerTest {
                                                  "<title>16th International Conference on Very Large Data Bases, August 13-16, 1990, Brisbane, Queensland, Australia, Proceedings.</title>\n" +
                                                  "<title>Proceedings of the 1990 ACM SIGMOD International Conference on Management of Data, Atlantic City, NJ, May 23-25, 1990.</title>\n";
 
-    private static VXQueryApplication application;
-    private static RestServer restServer;
+    // TODO: 7/17/17 Use xtests ghcnd dataset for tests
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        System.setProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE, "src/test/resources/vxquery.properties");
-        application = new VXQueryApplication();
-        application.start();
-
-        restServer = application.getRestServer();
+    @Test
+    public void testSimpleQuery001() throws Exception {
+        runTest(CONTENT_TYPE_JSON, "1+1", "2");
+        runTest(CONTENT_TYPE_XML, "1+1", "2");
     }
 
     @Test
-    public void testJSONResponses() throws Exception {
-        runTest(CONTENT_TYPE_JSON);
+    public void testSimpleQuery002() throws Exception {
+        runTest(CONTENT_TYPE_JSON, "fn:true()", "true");
+        runTest(CONTENT_TYPE_XML, "fn:true()", "true");
     }
 
     @Test
-    public void testXMLResponses() throws Exception {
-        runTest(CONTENT_TYPE_XML);
+    public void testSimpleQuery003() throws Exception {
+        runTest(CONTENT_TYPE_JSON, "fn:false()", "false");
+        runTest(CONTENT_TYPE_XML, "fn:false()", "false");
     }
 
-    private void runTest(String contentType) throws Exception {
+    @Test
+    public void testSimpleQuery004() throws Exception {
+        runTest(CONTENT_TYPE_JSON, "for $x in (1, 2.0, 3) return $x", "123");
+        runTest(CONTENT_TYPE_XML, "for $x in (1, 2.0, 3) return $x", "123");
+    }
+
+    @Test
+    public void testSimpleQuery005() throws Exception {
+        runTest(CONTENT_TYPE_JSON, "for $x in (1, 2, 3), $y in ('a', 'b', 'c') for $z in (1, 2) return ($x, $y, $z)",
+                "1a11a21b11b21c11c22a12a22b12b22c12c23a13a23b13b23c13c2");
+        runTest(CONTENT_TYPE_XML, "for $x in (1, 2, 3), $y in ('a', 'b', 'c') for $z in (1, 2) return ($x, $y, $z)",
+                "1a11a21b11b21c11c22a12a22b12b22c12c23a13a23b13b23c13c2");
+    }
+
+    @Test
+    public void testComplexQuery001() throws Exception {
+        runTest(CONTENT_TYPE_JSON, QUERY, RESULT);
+        runTest(CONTENT_TYPE_XML, QUERY, RESULT);
+    }
+
+    private void runTest(String contentType, String query, String result) throws Exception {
         URI queryEndpointUri = new URIBuilder()
                                        .setScheme("http")
                                        .setHost("localhost")
                                        .setPort(restServer.getPort())
                                        .setPath(QUERY_ENDPOINT)
-                                       .addParameter(STATEMENT, QUERY)
+                                       .addParameter(STATEMENT, query)
                                        .addParameter(SHOW_AST, "true")
                                        .addParameter(SHOW_TET, "true")
                                        .addParameter(SHOW_OET, "true")
@@ -116,15 +128,15 @@ public class RestServerTest {
         Assert.assertNotNull(queryResponse.getTranslatedExpressionTree());
         Assert.assertNotNull(queryResponse.getOptimizedExpressionTree());
         Assert.assertNotNull(queryResponse.getRuntimePlan());
+        Assert.assertEquals(query, queryResponse.getStatement());
 
         QueryResultResponse resultResponse = getQueryResultResponse(queryResponse.getResultId(), contentType);
         Assert.assertNotNull(resultResponse);
         Assert.assertNotNull(resultResponse.getStatus());
-
+        Assert.assertEquals(resultResponse.getStatus(), Status.SUCCESS.toString());
         Assert.assertNotNull(resultResponse.getResults());
         Assert.assertNotNull(resultResponse.getRequestId());
-        Assert.assertEquals(RESULT.replace("\n", ""), resultResponse.getResults().replace("\n", ""));
-
+        Assert.assertEquals(result.replace("\n", ""), resultResponse.getResults().replace("\n", ""));
     }
 
     private static QueryResponse getQueryResponse(URI uri, String accepts) throws IOException, JAXBException {
@@ -136,11 +148,11 @@ public class RestServerTest {
             HttpGet request = new HttpGet(uri);
             request.setHeader(HttpHeaders.ACCEPT, accepts);
 
-            try (CloseableHttpResponse httpQueryResponse = httpClient.execute(request)) {
-                Assert.assertEquals(httpQueryResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
-                Assert.assertEquals(accepts, httpQueryResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+            try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
+                Assert.assertEquals(httpResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
+                Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
 
-                HttpEntity entity = httpQueryResponse.getEntity();
+                HttpEntity entity = httpResponse.getEntity();
                 Assert.assertNotNull(entity);
 
                 String response = readEntity(entity);
@@ -156,7 +168,7 @@ public class RestServerTest {
                                              .setScheme("http")
                                              .setHost("localhost")
                                              .setPort(restServer.getPort())
-                                             .setPath(QUERY_RESULT_ENDPOINT + String.valueOf(resultId))
+                                             .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultId)))
                                              .build();
 
         CloseableHttpClient httpClient = HttpClients.custom()
@@ -167,11 +179,11 @@ public class RestServerTest {
             HttpGet request = new HttpGet(queryResultEndpointUri);
             request.setHeader(HttpHeaders.ACCEPT, accepts);
 
-            try (CloseableHttpResponse httpQueryResponse = httpClient.execute(request)) {
-                Assert.assertEquals(accepts, httpQueryResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
-                Assert.assertEquals(httpQueryResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
+            try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
+                Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                Assert.assertEquals(httpResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
 
-                HttpEntity entity = httpQueryResponse.getEntity();
+                HttpEntity entity = httpResponse.getEntity();
                 Assert.assertNotNull(entity);
 
                 String response = readEntity(entity);
@@ -180,37 +192,5 @@ public class RestServerTest {
         } finally {
             HttpClientUtils.closeQuietly(httpClient);
         }
-    }
-
-    private static String readEntity(HttpEntity entity) throws IOException {
-        StringBuilder responseBody = new StringBuilder();
-
-        try (InputStream in = entity.getContent()) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                responseBody.append(line);
-            }
-        }
-        return responseBody.toString();
-    }
-
-    private static <T> T mapEntity(String entity, Class<T> type, String contentType) throws IOException, JAXBException {
-        switch (contentType) {
-            case CONTENT_TYPE_JSON:
-                ObjectMapper jsonMapper = new ObjectMapper();
-                return jsonMapper.readValue(entity, type);
-            case CONTENT_TYPE_XML:
-                JAXBContext jaxbContext = JAXBContext.newInstance(type);
-                Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-                return type.cast(unmarshaller.unmarshal(new StringReader(entity)));
-        }
-
-        throw new IllegalArgumentException("Entity didn't match any content type");
-    }
-
-    @AfterClass
-    public static void tearDown() throws Exception {
-        application.stop();
     }
 }

@@ -60,7 +60,7 @@ public class RestServer {
 
     public void start() {
         try {
-            LOGGER.log(Level.INFO, "Starting rest server");
+            LOGGER.log(Level.FINE, "Starting rest server");
             webManager.start();
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when starting rest server", e);
@@ -71,13 +71,13 @@ public class RestServer {
 
     public void stop() {
         try {
-            LOGGER.log(Level.CONFIG, "Stopping rest server");
+            LOGGER.log(Level.FINE, "Stopping rest server");
             webManager.stop();
-            LOGGER.log(Level.INFO, "Rest server stopped");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when stopping VXQuery", e);
             throw new VXQueryRuntimeException("Error occurred when stopping rest server", e);
         }
+        LOGGER.log(Level.INFO, "Rest server stopped");
     }
 
     public int getPort() {

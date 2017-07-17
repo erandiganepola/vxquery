@@ -66,7 +66,7 @@ public class QueryAPIServlet extends RestAPIServlet {
     }
 
     private QueryRequest getQueryRequest(IServletRequest request) {
-        if (request.getParameter(STATEMENT) == null) {
+        if (request.getParameter(STATEMENT) == null || request.getParameter(STATEMENT).trim().isEmpty()) {
             throw new IllegalArgumentException("Parameter 'statement' is required to handle the request");
         }
 

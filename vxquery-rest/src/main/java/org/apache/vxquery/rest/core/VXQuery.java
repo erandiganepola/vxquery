@@ -102,9 +102,6 @@ public class VXQuery {
 
     private IHyracksClientConnection hyracksClientConnection;
     private HyracksDataset hyracksDataset;
-    /** Following two instances are used only if local hyracks cluster is used */
-    private ClusterControllerService clusterControllerService;
-    private NodeControllerService[] nodeControllerServices;
 
     public VXQuery(VXQueryConfig config) {
         vxQueryConfig = config;
@@ -115,30 +112,24 @@ public class VXQuery {
             throw new IllegalStateException("VXQuery is at state : " + state);
         }
 
+        if (System.getProperty(HYRACKS_CLIENT_IP) == null || System.getProperty(HYRACKS_CLIENT_PORT) == null) {
+            throw new IllegalArgumentException(String.format("%s and %s are required to connect to hyracks", HYRACKS_CLIENT_IP, HYRACKS_CLIENT_PORT));
+        }
+
         setState(State.STARTING);
 
-        if (System.getProperty(HYRACKS_CLIENT_IP) == null || System.getProperty(HYRACKS_CLIENT_PORT) == null) {
-            LOGGER.log(Level.INFO, "Using local hyracks cluster");
-            try {
-                startLocalHyracks();
-            } catch (Exception e) {
-                setState(State.STOPPED);
-                LOGGER.log(SEVERE, "Error occurred when starting local hyracks", e);
-                throw new VXQueryRuntimeException("Unable to start local hyracks", e);
-            }
-        } else {
-            String hyracksClientIp = System.getProperty(HYRACKS_CLIENT_IP);
-            int hyracksClientPort = Integer.parseInt(System.getProperty(HYRACKS_CLIENT_PORT));
+        String hyracksClientIp = System.getProperty(HYRACKS_CLIENT_IP);
+        int hyracksClientPort = Integer.parseInt(System.getProperty(HYRACKS_CLIENT_PORT));
 
-            try {
-                hyracksClientConnection = new HyracksConnection(hyracksClientIp, hyracksClientPort);
-            } catch (Exception e) {
-                LOGGER.log(SEVERE, String.format("Unable to create a hyracks client connection to %s:%d", hyracksClientIp, hyracksClientPort));
-                throw new VXQueryRuntimeException("Unable to create a hyracks client connection", e);
-            }
-
-            LOGGER.log(Level.INFO, String.format("Using hyracks connection to %s:%d", hyracksClientIp, hyracksClientPort));
+        try {
+            hyracksClientConnection = new HyracksConnection(hyracksClientIp, hyracksClientPort);
+        } catch (Exception e) {
+            LOGGER.log(SEVERE, String.format("Unable to create a hyracks client connection to %s:%d", hyracksClientIp, hyracksClientPort));
+            throw new VXQueryRuntimeException("Unable to create a hyracks client connection", e);
         }
+
+        LOGGER.log(Level.INFO, String.format("Using hyracks connection to %s:%d", hyracksClientIp, hyracksClientPort));
+
 
         setState(State.STARTED);
         LOGGER.log(Level.INFO, "VXQuery started successfully");
@@ -305,70 +296,10 @@ public class VXQuery {
         return new ResultSetId(resultSetId);
     }
 
-    /**
-     * Start local virtual cluster with cluster controller node and node controller nodes. IP address provided for node
-     * controller is localhost. Unassigned ports 39000 and 39001 are used for client and cluster port respectively.
-     * Creates a new Hyracks connection with the IP address and client ports.
-     *
-     * @throws Exception
-     */
-    @SuppressWarnings("Duplicates")
-    public void startLocalHyracks() throws Exception {
-        String localAddress = InetAddress.getLocalHost().getHostAddress();
-        CCConfig ccConfig = new CCConfig();
-        ccConfig.clientNetIpAddress = localAddress;
-        ccConfig.clientNetPort = 39000;
-        ccConfig.clusterNetIpAddress = localAddress;
-        ccConfig.clusterNetPort = 39001;
-        ccConfig.httpPort = 39002;
-        ccConfig.profileDumpPeriod = 10000;
-        clusterControllerService = new ClusterControllerService(ccConfig);
-        clusterControllerService.start();
-
-        nodeControllerServices = new NodeControllerService[vxQueryConfig.getLocalNodeControllers()];
-        for (int i = 0; i < nodeControllerServices.length; i++) {
-            NCConfig ncConfig = new NCConfig();
-            ncConfig.ccHost = "localhost";
-            ncConfig.ccPort = 39001;
-            ncConfig.clusterNetIPAddress = localAddress;
-            ncConfig.dataIPAddress = localAddress;
-            ncConfig.resultIPAddress = localAddress;
-            ncConfig.nodeId = "nc" + (i + 1);
-            ncConfig.ioDevices = Files.createTempDirectory(ncConfig.nodeId).toString();
-            nodeControllerServices[i] = new NodeControllerService(ncConfig);
-            nodeControllerServices[i].start();
-        }
-
-        hyracksClientConnection = new HyracksConnection(ccConfig.clientNetIpAddress, ccConfig.clientNetPort);
-    }
-
-    /**
-     * Shuts down the virtual cluster, along with all nodes and node execution, network and queue managers.
-     *
-     * @throws Exception
-     */
-    public void stopLocalHyracks() throws Exception {
-        for (int i = 0; i < nodeControllerServices.length; i++) {
-            nodeControllerServices[i].stop();
-        }
-        clusterControllerService.stop();
-    }
-
     public synchronized void stop() {
         if (!State.STOPPED.equals(state)) {
             setState(State.STOPPING);
-
-            try {
-                if (System.getProperty(HYRACKS_CLIENT_IP) == null || System.getProperty(HYRACKS_CLIENT_PORT) == null) {
-                    LOGGER.log(Level.INFO, "Stopping local hyracks cluster");
-                    stopLocalHyracks();
-                }
-            } catch (Exception e) {
-                setState(State.STARTED);
-                LOGGER.log(SEVERE, "Error occurred when stopping VXQuery", e);
-                throw new VXQueryRuntimeException("Unable to stop local hyracks", e);
-            }
-
+            LOGGER.log(Level.FINE, "Stooping VXQuery");
             setState(State.STOPPED);
             LOGGER.log(Level.INFO, "VXQuery stopped successfully");
         } else {
@@ -380,6 +311,10 @@ public class VXQuery {
         return state;
     }
 
+    /**
+     * A {@link XQueryCompilationListener} implementation to be used to add AbstractSyntaxTree, RuntimePlan and etc to
+     * the {@link QueryResponse} if requested by the user.
+     */
     private class VXQueryCompilationListener implements XQueryCompilationListener {
         private QueryResponse response;
         private boolean showAbstractSyntaxTree;
