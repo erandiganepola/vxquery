@@ -688,6 +688,5 @@
         <module>vxquery-cli</module>
         <module>vxquery-xtest</module>
         <module>vxquery-benchmark</module>
-        <module>vxquery-rest</module>
     </modules>
 </project>
