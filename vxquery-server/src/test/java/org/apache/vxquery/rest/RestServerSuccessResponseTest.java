@@ -27,6 +27,8 @@ import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.app.core.Status;
+import org.apache.vxquery.rest.request.QueryRequest;
+import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
 import org.junit.Assert;
@@ -40,6 +42,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
+import static org.apache.vxquery.rest.Constants.Parameters.METRICS;
+import static org.apache.vxquery.rest.Constants.Parameters.REPEAT_EXECUTIONS;
 import static org.apache.vxquery.rest.Constants.Parameters.SHOW_AST;
 import static org.apache.vxquery.rest.Constants.Parameters.SHOW_OET;
 import static org.apache.vxquery.rest.Constants.Parameters.SHOW_RP;
@@ -56,87 +60,120 @@ import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
  */
 public class RestServerSuccessResponseTest extends AbstractRestServerTest {
 
-    private static final String QUERY = "for $x in doc(\"src/test/resources/dblp.xml\")/dblp/proceedings where $x/year=1990 return $x/title";
-    private static final String RESULT = "<title>Advances in Database Technology - EDBT&apos;90.  International Conference on Extending Database Technology, Venice, Italy, March 26-30, 1990, Proceedings</title>\n" +
-                                                 "<title>Proceedings of the Sixth International Conference on Data Engineering, February 5-9, 1990, Los Angeles, California, USA</title>\n" +
-                                                 "<title>ICDT&apos;90, Third International Conference on Database Theory, Paris, France, December 12-14, 1990, Proceedings</title>\n" +
-                                                 "<title>Proceedings of the Ninth ACM SIGACT-SIGMOD-SIGART Symposium on Principles of Database Systems, April 2-4, 1990, Nashville, Tennessee</title>\n" +
-                                                 "<title>16th International Conference on Very Large Data Bases, August 13-16, 1990, Brisbane, Queensland, Australia, Proceedings.</title>\n" +
-                                                 "<title>Proceedings of the 1990 ACM SIGMOD International Conference on Management of Data, Atlantic City, NJ, May 23-25, 1990.</title>\n";
-
-    // TODO: 7/17/17 Use xtests ghcnd dataset for tests
-
     @Test
     public void testSimpleQuery001() throws Exception {
-        runTest(CONTENT_TYPE_JSON, "1+1", "2");
-        runTest(CONTENT_TYPE_XML, "1+1", "2");
+        QueryRequest request = new QueryRequest(null, "1+1");
+        request.setShowAbstractSyntaxTree(true);
+        request.setShowOptimizedExpressionTree(true);
+        request.setShowRuntimePlan(true);
+        request.setShowTranslatedExpressionTree(true);
+
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
     }
 
     @Test
     public void testSimpleQuery002() throws Exception {
-        runTest(CONTENT_TYPE_JSON, "fn:true()", "true");
-        runTest(CONTENT_TYPE_XML, "fn:true()", "true");
+        QueryRequest request = new QueryRequest(null, "for $x in (1, 2.0, 3) return $x");
+        request.setShowAbstractSyntaxTree(true);
+        request.setShowOptimizedExpressionTree(true);
+        request.setShowRuntimePlan(true);
+        request.setShowTranslatedExpressionTree(true);
+
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
     }
 
-    @Test
-    public void testSimpleQuery003() throws Exception {
-        runTest(CONTENT_TYPE_JSON, "fn:false()", "false");
-        runTest(CONTENT_TYPE_XML, "fn:false()", "false");
-    }
-
-    @Test
-    public void testSimpleQuery004() throws Exception {
-        runTest(CONTENT_TYPE_JSON, "for $x in (1, 2.0, 3) return $x", "123");
-        runTest(CONTENT_TYPE_XML, "for $x in (1, 2.0, 3) return $x", "123");
-    }
-
-    @Test
-    public void testSimpleQuery005() throws Exception {
-        runTest(CONTENT_TYPE_JSON, "for $x in (1, 2, 3), $y in ('a', 'b', 'c') for $z in (1, 2) return ($x, $y, $z)",
-                "1a11a21b11b21c11c22a12a22b12b22c12c23a13a23b13b23c13c2");
-        runTest(CONTENT_TYPE_XML, "for $x in (1, 2, 3), $y in ('a', 'b', 'c') for $z in (1, 2) return ($x, $y, $z)",
-                "1a11a21b11b21c11c22a12a22b12b22c12c23a13a23b13b23c13c2");
-    }
-
-    @Test
-    public void testComplexQuery001() throws Exception {
-        runTest(CONTENT_TYPE_JSON, QUERY, RESULT);
-        runTest(CONTENT_TYPE_XML, QUERY, RESULT);
-    }
-
-    private void runTest(String contentType, String query, String result) throws Exception {
+    private void runTest(String contentType, QueryRequest request) throws Exception {
         URI queryEndpointUri = new URIBuilder()
                                        .setScheme("http")
                                        .setHost("localhost")
                                        .setPort(restPort)
                                        .setPath(QUERY_ENDPOINT)
-                                       .addParameter(STATEMENT, query)
-                                       .addParameter(SHOW_AST, "true")
-                                       .addParameter(SHOW_TET, "true")
-                                       .addParameter(SHOW_OET, "true")
-                                       .addParameter(SHOW_RP, "true")
+                                       .addParameter(STATEMENT, request.getStatement())
+                                       .addParameter(SHOW_AST, String.valueOf(request.isShowAbstractSyntaxTree()))
+                                       .addParameter(SHOW_TET, String.valueOf(request.isShowTranslatedExpressionTree()))
+                                       .addParameter(SHOW_OET, String.valueOf(request.isShowOptimizedExpressionTree()))
+                                       .addParameter(SHOW_RP, String.valueOf(request.isShowRuntimePlan()))
+                                       .addParameter(REPEAT_EXECUTIONS, String.valueOf(request.getRepeatExecutions()))
+                                       .addParameter(METRICS, String.valueOf(request.isShowMetrics()))
                                        .build();
 
-        QueryResponse queryResponse = getQueryResponse(queryEndpointUri, contentType);
-        Assert.assertNotNull(queryResponse);
+        /*
+         * ========== Query Response Testing ==========
+         */
 
-        Assert.assertEquals(Status.SUCCESS.toString(), queryResponse.getStatus());
-        Assert.assertNotEquals(0, queryResponse.getResultId());
-        Assert.assertNotNull(queryResponse.getRequestId());
-        Assert.assertNotNull(queryResponse.getResultUrl());
-        Assert.assertNotNull(queryResponse.getAbstractSyntaxTree());
-        Assert.assertNotNull(queryResponse.getTranslatedExpressionTree());
-        Assert.assertNotNull(queryResponse.getOptimizedExpressionTree());
-        Assert.assertNotNull(queryResponse.getRuntimePlan());
-        Assert.assertEquals(query, queryResponse.getStatement());
+        // Testing the accuracy of VXQuery class
+        QueryResponse expectedQueryResponse = (QueryResponse) vxQuery.execute(request);
 
-        QueryResultResponse resultResponse = getQueryResultResponse(queryResponse.getResultId(), contentType);
-        Assert.assertNotNull(resultResponse);
-        Assert.assertNotNull(resultResponse.getStatus());
-        Assert.assertEquals(resultResponse.getStatus(), Status.SUCCESS.toString());
-        Assert.assertNotNull(resultResponse.getResults());
-        Assert.assertNotNull(resultResponse.getRequestId());
-        Assert.assertEquals(result.replace("\n", ""), resultResponse.getResults().replace("\n", ""));
+        Assert.assertTrue(expectedQueryResponse.getResultUrl().startsWith(Constants.RESULT_URL_PREFIX));
+        Assert.assertEquals(Status.SUCCESS.toString(), expectedQueryResponse.getStatus());
+        Assert.assertNotEquals(0, expectedQueryResponse.getResultId());
+        Assert.assertEquals(request.getStatement(), expectedQueryResponse.getStatement());
+
+        if (request.isShowAbstractSyntaxTree()) {
+            Assert.assertNotNull(expectedQueryResponse.getAbstractSyntaxTree());
+        } else {
+            Assert.assertNull(expectedQueryResponse.getAbstractSyntaxTree());
+        }
+
+        if (request.isShowTranslatedExpressionTree()) {
+            Assert.assertNotNull(expectedQueryResponse.getTranslatedExpressionTree());
+        } else {
+            Assert.assertNull(expectedQueryResponse.getTranslatedExpressionTree());
+        }
+
+        if (request.isShowOptimizedExpressionTree()) {
+            Assert.assertNotNull(expectedQueryResponse.getOptimizedExpressionTree());
+        } else {
+            Assert.assertNull(expectedQueryResponse.getOptimizedExpressionTree());
+        }
+
+        if (request.isShowRuntimePlan()) {
+            Assert.assertNotNull(expectedQueryResponse.getRuntimePlan());
+        } else {
+            Assert.assertNull(expectedQueryResponse.getRuntimePlan());
+        }
+
+        //Testing the accuracy of REST server and servlets
+        QueryResponse actualQueryResponse = getQueryResponse(queryEndpointUri, contentType);
+        Assert.assertNotNull(actualQueryResponse.getRequestId());
+        Assert.assertNotNull(actualQueryResponse.getResultUrl());
+        Assert.assertNotEquals(0, actualQueryResponse.getResultId());
+        Assert.assertEquals(request.getStatement(), expectedQueryResponse.getStatement());
+        Assert.assertEquals(Status.SUCCESS.toString(), expectedQueryResponse.getStatus());
+
+        // Cannot check this because Runtime plan include some object IDs which differ
+        // Assert.assertEquals(expectedQueryResponse.getRuntimePlan(), actualQueryResponse.getRuntimePlan());
+        Assert.assertNotNull(actualQueryResponse.getRuntimePlan());
+        Assert.assertEquals(normalize(expectedQueryResponse.getOptimizedExpressionTree()), normalize(actualQueryResponse.getOptimizedExpressionTree()));
+        Assert.assertEquals(normalize(expectedQueryResponse.getTranslatedExpressionTree()), normalize(actualQueryResponse.getTranslatedExpressionTree()));
+        Assert.assertEquals(normalize(expectedQueryResponse.getAbstractSyntaxTree()), normalize(actualQueryResponse.getAbstractSyntaxTree()));
+
+        // TODO: 7/25/17 Metrics check
+
+        /*
+         * ========== Query Result Response Testing ========
+         */
+
+        QueryResultRequest resultRequest = new QueryResultRequest(actualQueryResponse.getResultId(), null);
+        resultRequest.setMetrics(true);
+
+        QueryResultResponse expectedResultResponse = (QueryResultResponse) vxQuery.getResult(resultRequest);
+        Assert.assertEquals(expectedResultResponse.getStatus(), Status.SUCCESS.toString());
+        Assert.assertNotNull(expectedResultResponse.getResults());
+
+        QueryResultResponse actualResultResponse = getQueryResultResponse(resultRequest, contentType);
+        Assert.assertEquals(actualResultResponse.getStatus(), Status.SUCCESS.toString());
+        Assert.assertNotNull(actualResultResponse.getResults());
+        Assert.assertNotNull(actualResultResponse.getRequestId());
+        Assert.assertEquals(normalize(expectedResultResponse.getResults()), normalize(actualResultResponse.getResults()));
+
+        // TODO: 7/25/17 Metrics check
+    }
+
+    private static String normalize(String string) {
+        return string.replace("\r\n", "").replace("\n", "").replace("\r", "");
     }
 
     private static QueryResponse getQueryResponse(URI uri, String accepts) throws IOException, JAXBException {
@@ -149,7 +186,7 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
             request.setHeader(HttpHeaders.ACCEPT, accepts);
 
             try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
-                Assert.assertEquals(httpResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
+                Assert.assertEquals(HttpResponseStatus.OK.code(), httpResponse.getStatusLine().getStatusCode());
                 Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
 
                 HttpEntity entity = httpResponse.getEntity();
@@ -163,12 +200,13 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         }
     }
 
-    private static QueryResultResponse getQueryResultResponse(long resultId, String accepts) throws IOException, URISyntaxException, JAXBException {
+    private static QueryResultResponse getQueryResultResponse(QueryResultRequest resultRequest, String accepts) throws IOException, URISyntaxException, JAXBException {
         URI queryResultEndpointUri = new URIBuilder()
                                              .setScheme("http")
                                              .setHost("localhost")
                                              .setPort(restPort)
-                                             .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultId)))
+                                             .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultRequest.getResultId())))
+                                             .setParameter(METRICS, String.valueOf(resultRequest.isMetrics()))
                                              .build();
 
         CloseableHttpClient httpClient = HttpClients.custom()

@@ -28,6 +28,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 
+import static org.apache.vxquery.rest.Constants.Parameters.METRICS;
+
 /**
  * Servlet to handle query results requests.
  *
@@ -47,7 +49,9 @@ public class QueryResultAPIServlet extends RestAPIServlet {
         String uri = request.getHttpRequest().uri();
         long resultId;
         try {
-            resultId = Long.parseLong(uri.substring(uri.lastIndexOf("/") + 1));
+            String pathParam = uri.substring(uri.lastIndexOf("/") + 1);
+            pathParam = pathParam.contains("?") ? pathParam.split("\\?")[0] : pathParam;
+            resultId = Long.parseLong(pathParam);
         } catch (NumberFormatException e) {
             LOGGER.log(Level.SEVERE, "Result ID could not be retrieved from URL");
             return APIResponse.newErrorResponse(null,
@@ -58,6 +62,7 @@ public class QueryResultAPIServlet extends RestAPIServlet {
         }
 
         QueryResultRequest resultRequest = new QueryResultRequest(resultId, UUID.randomUUID().toString());
+        resultRequest.setMetrics(Boolean.parseBoolean(request.getParameter(METRICS)));
         LOGGER.log(Level.INFO, String.format("Received a result request with resultId : %d", resultRequest.getResultId()));
         return vxQuery.getResult(resultRequest);
     }

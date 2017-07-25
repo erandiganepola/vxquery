@@ -24,6 +24,8 @@ import org.apache.hyracks.control.common.controllers.CCConfig;
 import org.apache.hyracks.control.common.controllers.NCConfig;
 import org.apache.hyracks.control.nc.NodeControllerService;
 import org.apache.vxquery.app.VXQueryApplication;
+import org.apache.vxquery.app.core.VXQuery;
+import org.apache.vxquery.app.core.VXQueryConfig;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -48,12 +50,21 @@ public class AbstractRestServerTest {
     private static NodeControllerService nodeControllerService;
 
     protected static int restPort;
+    protected static VXQuery vxQuery;
 
     @BeforeClass
     public static void setUp() throws Exception {
         System.setProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE, "src/test/resources/vxquery.properties");
 
         startLocalHyracks();
+
+        CCConfig ccConfig = clusterControllerService.getCCConfig();
+        VXQueryConfig config = new VXQueryConfig();
+        config.setHyracksClientIp(ccConfig.clientNetIpAddress);
+        config.setHyracksClientPort(ccConfig.clientNetPort);
+        vxQuery = new VXQuery(config);
+        vxQuery.start();
+
         restPort = Integer.parseInt(System.getProperty(REST_SERVER_PORT, "8085"));
     }
 
@@ -129,6 +140,7 @@ public class AbstractRestServerTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
+        vxQuery.stop();
         stopLocalHyracks();
     }
 }

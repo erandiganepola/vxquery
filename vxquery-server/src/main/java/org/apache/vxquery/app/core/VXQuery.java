@@ -179,7 +179,7 @@ public class VXQuery {
         CompilerControlBlock compilerControlBlock = new CompilerControlBlock(new StaticContextImpl(RootStaticContextImpl.INSTANCE),
                                                                                     resultSetId, null);
         try {
-            compiler.compile(request.getRequestId(), new StringReader(query), compilerControlBlock, request.getOptimization(), null);
+            compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization(), null);
         } catch (AlgebricksException | SystemException e) {
             return APIResponse.newErrorResponse(request.getRequestId(),
                     Error.builder()
