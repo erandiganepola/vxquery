@@ -35,6 +35,9 @@ public class VXQueryConfig {
     /** Directory path to Hadoop configuration files */
     private String hdfsConf = null;
 
+    private String hyracksClientIp;
+    private int hyracksClientPort;
+
     public int getAvailableProcessors() {
         return availableProcessors;
     }
@@ -81,5 +84,21 @@ public class VXQueryConfig {
 
     public void setHdfsConf(String hdfsConf) {
         this.hdfsConf = hdfsConf;
+    }
+
+    public int getHyracksClientPort() {
+        return hyracksClientPort;
+    }
+
+    public void setHyracksClientPort(int hyracksClientPort) {
+        this.hyracksClientPort = hyracksClientPort;
+    }
+
+    public String getHyracksClientIp() {
+        return hyracksClientIp;
+    }
+
+    public void setHyracksClientIp(String hyracksClientIp) {
+        this.hyracksClientIp = hyracksClientIp;
     }
 }

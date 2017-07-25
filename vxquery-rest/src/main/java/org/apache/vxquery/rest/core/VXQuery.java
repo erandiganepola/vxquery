@@ -112,24 +112,20 @@ public class VXQuery {
             throw new IllegalStateException("VXQuery is at state : " + state);
         }
 
-        if (System.getProperty(HYRACKS_CLIENT_IP) == null || System.getProperty(HYRACKS_CLIENT_PORT) == null) {
-            throw new IllegalArgumentException(String.format("%s and %s are required to connect to hyracks", HYRACKS_CLIENT_IP, HYRACKS_CLIENT_PORT));
+        if (vxQueryConfig.getHyracksClientIp() == null) {
+            throw new IllegalArgumentException("hyracksClientIp is required to connect to hyracks");
         }
 
         setState(State.STARTING);
 
-        String hyracksClientIp = System.getProperty(HYRACKS_CLIENT_IP);
-        int hyracksClientPort = Integer.parseInt(System.getProperty(HYRACKS_CLIENT_PORT));
-
         try {
-            hyracksClientConnection = new HyracksConnection(hyracksClientIp, hyracksClientPort);
+            hyracksClientConnection = new HyracksConnection(vxQueryConfig.getHyracksClientIp(), vxQueryConfig.getHyracksClientPort());
         } catch (Exception e) {
-            LOGGER.log(SEVERE, String.format("Unable to create a hyracks client connection to %s:%d", hyracksClientIp, hyracksClientPort));
+            LOGGER.log(SEVERE, String.format("Unable to create a hyracks client connection to %s:%d", vxQueryConfig.getHyracksClientIp(), vxQueryConfig.getHyracksClientPort()));
             throw new VXQueryRuntimeException("Unable to create a hyracks client connection", e);
         }
 
-        LOGGER.log(Level.INFO, String.format("Using hyracks connection to %s:%d", hyracksClientIp, hyracksClientPort));
-
+        LOGGER.log(Level.FINE, String.format("Using hyracks connection to %s:%d", vxQueryConfig.getHyracksClientIp(), vxQueryConfig.getHyracksClientPort()));
 
         setState(State.STARTED);
         LOGGER.log(Level.INFO, "VXQuery started successfully");

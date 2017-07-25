@@ -108,7 +108,7 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         URI queryEndpointUri = new URIBuilder()
                                        .setScheme("http")
                                        .setHost("localhost")
-                                       .setPort(restServer.getPort())
+                                       .setPort(restPort)
                                        .setPath(QUERY_ENDPOINT)
                                        .addParameter(STATEMENT, query)
                                        .addParameter(SHOW_AST, "true")
@@ -121,7 +121,7 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         Assert.assertNotNull(queryResponse);
 
         Assert.assertEquals(Status.SUCCESS.toString(), queryResponse.getStatus());
-        Assert.assertNotNull(queryResponse.getResultId());
+        Assert.assertNotEquals(0, queryResponse.getResultId());
         Assert.assertNotNull(queryResponse.getRequestId());
         Assert.assertNotNull(queryResponse.getResultUrl());
         Assert.assertNotNull(queryResponse.getAbstractSyntaxTree());
@@ -167,7 +167,7 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         URI queryResultEndpointUri = new URIBuilder()
                                              .setScheme("http")
                                              .setHost("localhost")
-                                             .setPort(restServer.getPort())
+                                             .setPort(restPort)
                                              .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultId)))
                                              .build();
 

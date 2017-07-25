@@ -53,6 +53,10 @@
                                 <program>
                                     <mainClass>org.apache.hyracks.control.cc.CCDriver</mainClass>
                                     <name>vxquerycc</name>
+                                    <commandLineArguments>
+                                        <commandLineArgument>-app-cc-main-class</commandLineArgument>
+                                        <commandLineArgument>org.apache.vxquery.rest.VXQueryApplication</commandLineArgument>
+                                    </commandLineArguments>
                                 </program>
                                 <program>
                                     <mainClass>org.apache.hyracks.control.nc.NCDriver</mainClass>
@@ -140,6 +144,12 @@
         <dependency>
             <groupId>org.apache.vxquery</groupId>
             <artifactId>apache-vxquery-core</artifactId>
+            <version>0.7-SNAPSHOT</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.vxquery</groupId>
+            <artifactId>apache-vxquery-rest</artifactId>
             <version>0.7-SNAPSHOT</version>
         </dependency>
 

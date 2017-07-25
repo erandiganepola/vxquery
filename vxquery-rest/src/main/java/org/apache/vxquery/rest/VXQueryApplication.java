@@ -17,6 +17,9 @@
 
 package org.apache.vxquery.rest;
 
+import org.apache.hyracks.api.application.ICCApplicationContext;
+import org.apache.hyracks.api.application.ICCApplicationEntryPoint;
+import org.apache.hyracks.api.client.ClusterControllerInfo;
 import org.apache.vxquery.rest.core.VXQuery;
 import org.apache.vxquery.rest.core.VXQueryConfig;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
@@ -32,32 +35,18 @@ import java.util.logging.Logger;
  *
  * @author Erandi Ganepola
  */
-public class VXQueryApplication {
+public class VXQueryApplication implements ICCApplicationEntryPoint {
 
     private static final Logger LOGGER = Logger.getLogger(VXQueryApplication.class.getName());
 
     private VXQuery vxQuery;
     private RestServer restServer;
 
-    public VXQueryApplication() {
-        VXQueryConfig config = loadConfiguration();
+    @Override
+    public void start(ICCApplicationContext ccAppCtx, String[] args) throws Exception {
+        VXQueryConfig config = loadConfiguration(ccAppCtx.getCCContext().getClusterControllerInfo());
         vxQuery = new VXQuery(config);
         restServer = new RestServer(vxQuery);
-    }
-
-    public synchronized void start() {
-        try {
-            LOGGER.log(Level.INFO, "Starting VXQuery");
-            vxQuery.start();
-            LOGGER.log(Level.INFO, "VXQuery started successfully");
-
-            LOGGER.log(Level.INFO, "Starting REST server");
-            restServer.start();
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error occurred when starting application", e);
-            stop();
-            throw new VXQueryRuntimeException("Error occurred when starting application", e);
-        }
     }
 
     public synchronized void stop() {
@@ -72,7 +61,23 @@ public class VXQueryApplication {
         }
     }
 
-    private VXQueryConfig loadConfiguration() {
+    @Override
+    public void startupCompleted() throws Exception {
+        try {
+            LOGGER.log(Level.INFO, "Starting VXQuery");
+            vxQuery.start();
+            LOGGER.log(Level.INFO, "VXQuery started successfully");
+
+            LOGGER.log(Level.INFO, "Starting REST server");
+            restServer.start();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error occurred when starting application", e);
+            stop();
+            throw new VXQueryRuntimeException("Error occurred when starting application", e);
+        }
+    }
+
+    private VXQueryConfig loadConfiguration(ClusterControllerInfo clusterControllerInfo) {
         VXQueryConfig vxQueryConfig = new VXQueryConfig();
         String file = System.getProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE);
         if (file != null) {
@@ -84,6 +89,8 @@ public class VXQueryApplication {
         }
 
         // TODO: 6/21/17 Load more properties
+        vxQueryConfig.setHyracksClientIp(clusterControllerInfo.getClientNetAddress());
+        vxQueryConfig.setHyracksClientPort(clusterControllerInfo.getClientNetPort());
 
         return vxQueryConfig;
     }

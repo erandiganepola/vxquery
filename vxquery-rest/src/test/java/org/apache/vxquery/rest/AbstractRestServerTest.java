@@ -39,27 +39,21 @@ import java.nio.file.Files;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
+import static org.apache.vxquery.rest.Constants.Properties.REST_SERVER_PORT;
 
 public class AbstractRestServerTest {
 
     private static ClusterControllerService clusterControllerService;
     private static NodeControllerService nodeControllerService;
 
-    protected static VXQueryApplication application;
-    protected static RestServer restServer;
+    protected static int restPort;
 
     @BeforeClass
     public static void setUp() throws Exception {
         System.setProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE, "src/test/resources/vxquery.properties");
 
         startLocalHyracks();
-        CCConfig ccConfig = clusterControllerService.getCCConfig();
-        System.setProperty(Constants.Properties.HYRACKS_CLIENT_IP, ccConfig.clientNetIpAddress);
-        System.setProperty(Constants.Properties.HYRACKS_CLIENT_PORT, String.valueOf(ccConfig.clientNetPort));
-
-        application = new VXQueryApplication();
-        application.start();
-        restServer = application.getRestServer();
+        restPort = Integer.parseInt(System.getProperty(REST_SERVER_PORT, "8085"));
     }
 
     /**
@@ -78,6 +72,7 @@ public class AbstractRestServerTest {
         ccConfig.clusterNetPort = 39001;
         ccConfig.httpPort = 39002;
         ccConfig.profileDumpPeriod = 10000;
+        ccConfig.appCCMainClass = VXQueryApplication.class.getName();
         clusterControllerService = new ClusterControllerService(ccConfig);
         clusterControllerService.start();
 
@@ -133,7 +128,6 @@ public class AbstractRestServerTest {
 
     @AfterClass
     public static void tearDown() throws Exception {
-        application.stop();
         stopLocalHyracks();
     }
 }
