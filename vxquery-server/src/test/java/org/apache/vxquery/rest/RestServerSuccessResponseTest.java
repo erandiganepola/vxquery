@@ -65,6 +65,7 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         request.setShowOptimizedExpressionTree(true);
         request.setShowRuntimePlan(true);
         request.setShowTranslatedExpressionTree(true);
+        request.setShowMetrics(false);
 
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
@@ -77,6 +78,7 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         request.setShowOptimizedExpressionTree(true);
         request.setShowRuntimePlan(true);
         request.setShowTranslatedExpressionTree(true);
+        request.setShowMetrics(true);
 
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
@@ -110,6 +112,12 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         Assert.assertNotEquals(0, expectedQueryResponse.getResultId());
         Assert.assertEquals(request.getStatement(), expectedQueryResponse.getStatement());
 
+        if (request.isShowMetrics()) {
+            Assert.assertTrue(expectedQueryResponse.getMetrics().getCompileTime() > 0);
+        } else {
+            Assert.assertTrue(expectedQueryResponse.getMetrics().getCompileTime() == 0);
+        }
+
         if (request.isShowAbstractSyntaxTree()) {
             Assert.assertNotNull(expectedQueryResponse.getAbstractSyntaxTree());
         } else {
@@ -142,14 +150,18 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         Assert.assertEquals(request.getStatement(), expectedQueryResponse.getStatement());
         Assert.assertEquals(Status.SUCCESS.toString(), expectedQueryResponse.getStatus());
 
+        if (request.isShowMetrics()) {
+            Assert.assertTrue(actualQueryResponse.getMetrics().getCompileTime() > 0);
+        } else {
+            Assert.assertTrue(actualQueryResponse.getMetrics().getCompileTime() == 0);
+        }
+
         // Cannot check this because Runtime plan include some object IDs which differ
         // Assert.assertEquals(expectedQueryResponse.getRuntimePlan(), actualQueryResponse.getRuntimePlan());
         Assert.assertNotNull(actualQueryResponse.getRuntimePlan());
         Assert.assertEquals(normalize(expectedQueryResponse.getOptimizedExpressionTree()), normalize(actualQueryResponse.getOptimizedExpressionTree()));
         Assert.assertEquals(normalize(expectedQueryResponse.getTranslatedExpressionTree()), normalize(actualQueryResponse.getTranslatedExpressionTree()));
         Assert.assertEquals(normalize(expectedQueryResponse.getAbstractSyntaxTree()), normalize(actualQueryResponse.getAbstractSyntaxTree()));
-
-        // TODO: 7/25/17 Metrics check
 
         /*
          * ========== Query Result Response Testing ========
