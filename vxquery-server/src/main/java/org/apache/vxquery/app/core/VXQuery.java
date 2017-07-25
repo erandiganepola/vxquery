@@ -99,6 +99,10 @@ public class VXQuery {
         vxQueryConfig = config;
     }
 
+    /**
+     * Starts VXQuery class by creating a {@link IHyracksClientConnection} which will later be used to submit and
+     * retrieve queries and results to/from hyracks.
+     */
     public synchronized void start() {
         if (!State.STOPPED.equals(state)) {
             throw new IllegalStateException("VXQuery is at state : " + state);
@@ -127,15 +131,19 @@ public class VXQuery {
         state = newState;
     }
 
-    public APIResponse execute(QueryRequest request) {
+    /**
+     * Submits a query to hyracks to be run after compiling. Required intermediate results and metrics are also
+     * calculated according to the {@link QueryRequest}. Checks if this class has started before moving further.
+     *
+     * @param request {@link QueryRequest} containing information about the query to be executed and the merics required
+     *                along with the results
+     * @return QueryResponse if no error occurs | ErrorResponse else
+     */
+    public APIResponse execute(final QueryRequest request) {
         if (!State.STARTED.equals(state)) {
             throw new IllegalStateException("VXQuery is at state : " + state);
         }
 
-        return executeQuery(request);
-    }
-
-    private APIResponse executeQuery(final QueryRequest request) {
         QueryResponse response = APIResponse.newQueryResponse(request.getRequestId());
 
         String query = request.getStatement();
@@ -217,10 +225,11 @@ public class VXQuery {
     // TODO: 7/12/17 Allow multiple executions of the same query
 
     /**
-     * Returns the query results for a given result set id
+     * Returns the query results for a given result set id.
      *
      * @param request {@link QueryResultRequest} with result ID required
-     * @return query result
+     * @return Either a {@link QueryResultResponse} if no error occurred | {@link org.apache.vxquery.rest.response.ErrorResponse}
+     * else.
      */
     public APIResponse getResult(QueryResultRequest request) {
         if (jobContexts.containsKey(request.getResultId())) {
@@ -245,6 +254,14 @@ public class VXQuery {
         }
     }
 
+    /**
+     * Reads results from hyracks given the {@link HyracksJobContext} containing {@link ResultSetId} and {@link JobId}
+     * mapping.
+     *
+     * @param jobContext     mapoing between the {@link ResultSetId} and corresponding hyracks {@link JobId}
+     * @param resultResponse {@link QueryResultResponse} object to which the result will be added.
+     * @throws Exception IOErrors and etc
+     */
     private void readResults(HyracksJobContext jobContext, QueryResultResponse resultResponse) throws Exception {
         int nReaders = 1;
 

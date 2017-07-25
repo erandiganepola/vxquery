@@ -44,6 +44,12 @@ import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JS
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
 import static org.apache.vxquery.rest.Constants.Properties.REST_SERVER_PORT;
 
+/**
+ * Abstract test class to be used for {@link VXQueryApplication} related tests. These tests are expected to use the REST
+ * API for querying and fetching results
+ *
+ * @author Erandi Ganepola
+ */
 public class AbstractRestServerTest {
 
     private static ClusterControllerService clusterControllerService;
@@ -71,7 +77,6 @@ public class AbstractRestServerTest {
     /**
      * Start local virtual cluster with cluster controller node and node controller nodes. IP address provided for node
      * controller is localhost. Unassigned ports 39000 and 39001 are used for client and cluster port respectively.
-     * Creates a new Hyracks connection with the IP address and client ports.
      *
      * @throws Exception
      */

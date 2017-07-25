@@ -34,10 +34,7 @@ import org.apache.vxquery.rest.response.QueryResultResponse;
 import org.junit.Assert;
 import org.junit.Test;
 
-import javax.xml.bind.JAXBException;
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
@@ -54,7 +51,8 @@ import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
 /**
  * This class tests the success responses received for XQueries submitted. i.e we are submitting correct queries which
- * are expected to return a predictable result.
+ * are expected to return a predictable result. All the parameters that are expected to be sent with query requests are
+ * subjected to test in this test class
  *
  * @author Erandi Ganepola
  */
@@ -83,6 +81,7 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
     }
+
 
     private void runTest(String contentType, QueryRequest request) throws Exception {
         URI queryEndpointUri = new URIBuilder()
@@ -176,7 +175,15 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         return string.replace("\r\n", "").replace("\n", "").replace("\r", "");
     }
 
-    private static QueryResponse getQueryResponse(URI uri, String accepts) throws IOException, JAXBException {
+    /**
+     * Submit a {@link QueryRequest} and fecth the resulting {@link QueryResponse}
+     *
+     * @param uri     uri of the GET request
+     * @param accepts application/json | application/xml
+     * @return Response received for the query request
+     * @throws Exception
+     */
+    private static QueryResponse getQueryResponse(URI uri, String accepts) throws Exception {
         CloseableHttpClient httpClient = HttpClients.custom()
                                                  .setConnectionTimeToLive(20, TimeUnit.SECONDS)
                                                  .build();
@@ -200,7 +207,16 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         }
     }
 
-    private static QueryResultResponse getQueryResultResponse(QueryResultRequest resultRequest, String accepts) throws IOException, URISyntaxException, JAXBException {
+    /**
+     * Fetch the {@link QueryResultResponse} from query result endpoint once the corresponding {@link
+     * QueryResultRequest} is given.
+     *
+     * @param resultRequest {@link QueryResultRequest}
+     * @param accepts       expected <pre>Accepts</pre> header in responses
+     * @return query result reponse received
+     * @throws Exception
+     */
+    private static QueryResultResponse getQueryResultResponse(QueryResultRequest resultRequest, String accepts) throws Exception {
         URI queryResultEndpointUri = new URIBuilder()
                                              .setScheme("http")
                                              .setHost("localhost")
