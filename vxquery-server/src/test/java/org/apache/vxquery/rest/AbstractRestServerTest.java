@@ -19,6 +19,7 @@ package org.apache.vxquery.rest;
 
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.hyracks.control.cc.ClusterControllerService;
 import org.apache.hyracks.control.common.controllers.CCConfig;
 import org.apache.hyracks.control.common.controllers.NCConfig;
@@ -26,6 +27,8 @@ import org.apache.hyracks.control.nc.NodeControllerService;
 import org.apache.vxquery.app.VXQueryApplication;
 import org.apache.vxquery.app.core.VXQuery;
 import org.apache.vxquery.app.core.VXQueryConfig;
+import org.apache.vxquery.rest.request.QueryRequest;
+import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -38,11 +41,22 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
+import static org.apache.vxquery.rest.Constants.Parameters.METRICS;
+import static org.apache.vxquery.rest.Constants.Parameters.REPEAT_EXECUTIONS;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_AST;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_OET;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_RP;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_TET;
+import static org.apache.vxquery.rest.Constants.Parameters.STATEMENT;
 import static org.apache.vxquery.rest.Constants.Properties.REST_SERVER_PORT;
+import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
+import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
 /**
  * Abstract test class to be used for {@link VXQueryApplication} related tests. These tests are expected to use the REST
@@ -141,6 +155,32 @@ public class AbstractRestServerTest {
         }
 
         throw new IllegalArgumentException("Entity didn't match any content type");
+    }
+
+    public static URI buildQueryURI(QueryRequest request) throws URISyntaxException {
+        return new URIBuilder()
+                       .setScheme("http")
+                       .setHost("localhost")
+                       .setPort(restPort)
+                       .setPath(QUERY_ENDPOINT)
+                       .addParameter(STATEMENT, request.getStatement())
+                       .addParameter(SHOW_AST, String.valueOf(request.isShowAbstractSyntaxTree()))
+                       .addParameter(SHOW_TET, String.valueOf(request.isShowTranslatedExpressionTree()))
+                       .addParameter(SHOW_OET, String.valueOf(request.isShowOptimizedExpressionTree()))
+                       .addParameter(SHOW_RP, String.valueOf(request.isShowRuntimePlan()))
+                       .addParameter(REPEAT_EXECUTIONS, String.valueOf(request.getRepeatExecutions()))
+                       .addParameter(METRICS, String.valueOf(request.isShowMetrics()))
+                       .build();
+    }
+
+    public static URI buildQueryResultURI(QueryResultRequest resultRequest) throws URISyntaxException {
+        return new URIBuilder()
+                       .setScheme("http")
+                       .setHost("localhost")
+                       .setPort(restPort)
+                       .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultRequest.getResultId())))
+                       .setParameter(METRICS, String.valueOf(resultRequest.isMetrics()))
+                       .build();
     }
 
     @AfterClass

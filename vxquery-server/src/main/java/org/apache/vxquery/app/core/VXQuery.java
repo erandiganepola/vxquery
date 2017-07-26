@@ -18,7 +18,6 @@ package org.apache.vxquery.app.core;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.DomDriver;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hyracks.algebricks.common.exceptions.AlgebricksException;
 import org.apache.hyracks.algebricks.core.algebra.prettyprint.AlgebricksAppendable;
@@ -51,11 +50,11 @@ import org.apache.vxquery.exceptions.SystemException;
 import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
-import org.apache.vxquery.rest.response.QueryResponse;
-import org.apache.vxquery.rest.response.QueryResultResponse;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.Error;
+import org.apache.vxquery.rest.response.QueryResponse;
+import org.apache.vxquery.rest.response.QueryResultResponse;
 import org.apache.vxquery.result.ResultUtils;
 import org.apache.vxquery.xmlquery.ast.ModuleNode;
 import org.apache.vxquery.xmlquery.query.Module;
@@ -75,6 +74,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.SEVERE;
+import static org.apache.vxquery.rest.Constants.ErrorCodes.NOT_FOUND;
+import static org.apache.vxquery.rest.Constants.ErrorCodes.PROBLEM_WITH_QUERY;
+import static org.apache.vxquery.rest.Constants.ErrorCodes.UNFORSEEN_PROBLEM;
 
 /**
  * Main class responsible for handling query requests. This class will first compile, then submit query to hyracks and
@@ -168,11 +170,11 @@ public class VXQuery {
         try {
             nodeControllerInfos = hyracksClientConnection.getNodeControllerInfos();
         } catch (HyracksException e) {
-            return APIResponse.newErrorResponse(request.getRequestId(),
-                    Error.builder()
-                            .withCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-                            .withMessage("Hyracks connection problem : " + e.getMessage())
-                            .build());
+            LOGGER.log(Level.SEVERE, String.format("Error occurred when obtaining NC info: '%s'", e.getMessage()));
+            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
+                                                                                .withCode(UNFORSEEN_PROBLEM)
+                                                                                .withMessage("Hyracks connection problem: " + e.getMessage())
+                                                                                .build());
         }
 
         start = request.isShowMetrics() ? new Date() : null;
@@ -188,12 +190,18 @@ public class VXQuery {
                                                                                     resultSetId, null);
         try {
             compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization(), null);
-        } catch (AlgebricksException | SystemException e) {
-            return APIResponse.newErrorResponse(request.getRequestId(),
-                    Error.builder()
-                            .withCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-                            .withMessage("Query compilation failure : " + e.getMessage())
-                            .build());
+        } catch (AlgebricksException e) {
+            LOGGER.log(Level.SEVERE, String.format("Error occurred when compiling query: '%s' with message: '%s'", query, e.getMessage()));
+            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
+                                                                                .withCode(PROBLEM_WITH_QUERY)
+                                                                                .withMessage("Query compilation failure: " + e.getMessage())
+                                                                                .build());
+        } catch (SystemException e) {
+            LOGGER.log(Level.SEVERE, String.format("Error occurred when compiling query: '%s' with message: '%s'", query, e.getMessage()));
+            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
+                                                                                .withCode(PROBLEM_WITH_QUERY)
+                                                                                .withMessage("Query compilation failure: " + e.getMessage())
+                                                                                .build());
         }
 
         if (request.isShowMetrics()) {
@@ -211,12 +219,11 @@ public class VXQuery {
                 JobId jobId = hyracksClientConnection.startJob(js, EnumSet.of(JobFlag.PROFILE_RUNTIME));
                 jobContexts.put(resultSetId.getId(), new HyracksJobContext(jobId, js.getFrameSize(), resultSetId));
             } catch (Exception e) {
-                LOGGER.log(SEVERE, "Error occurred when submitting job to hyracks for request : " + request.getRequestId(), e);
-                return APIResponse.newErrorResponse(request.getRequestId(),
-                        Error.builder()
-                                .withCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-                                .withMessage("Error occurred when starting hyracks job")
-                                .build());
+                LOGGER.log(SEVERE, "Error occurred when submitting job to hyracks for query: " + query, e);
+                return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
+                                                                                    .withCode(UNFORSEEN_PROBLEM)
+                                                                                    .withMessage("Error occurred when starting hyracks job")
+                                                                                    .build());
             }
         }
         return response;
@@ -238,19 +245,17 @@ public class VXQuery {
                 readResults(jobContexts.get(request.getResultId()), resultResponse);
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error occurred when reading results for id : " + request.getResultId());
-                return APIResponse.newErrorResponse(request.getRequestId(),
-                        Error.builder()
-                                .withCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
-                                .withMessage("Error occurred when reading results from hyracks for result ID : " + request.getResultId())
-                                .build());
+                return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
+                                                                                    .withCode(UNFORSEEN_PROBLEM)
+                                                                                    .withMessage("Error occurred when reading results from hyracks for result ID: " + request.getResultId())
+                                                                                    .build());
             }
             return resultResponse;
         } else {
-            return APIResponse.newErrorResponse(request.getRequestId(),
-                    Error.builder()
-                            .withCode(HttpResponseStatus.NOT_FOUND.code())
-                            .withMessage("No query found for result ID : " + request.getResultId())
-                            .build());
+            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
+                                                                                .withCode(NOT_FOUND)
+                                                                                .withMessage("No query found for result ID : " + request.getResultId())
+                                                                                .build());
         }
     }
 

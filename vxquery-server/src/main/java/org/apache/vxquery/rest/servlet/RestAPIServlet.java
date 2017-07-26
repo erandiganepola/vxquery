@@ -25,14 +25,14 @@ import org.apache.hyracks.http.api.IServletRequest;
 import org.apache.hyracks.http.api.IServletResponse;
 import org.apache.hyracks.http.server.AbstractServlet;
 import org.apache.hyracks.http.server.utils.HttpUtil;
-import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.app.core.Status;
+import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
+import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
+import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.ErrorResponse;
 import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
-import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
-import org.apache.vxquery.rest.response.APIResponse;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -132,23 +132,15 @@ public abstract class RestAPIServlet extends AbstractServlet {
         } else if (Status.FATAL.toString().equals(entity.getStatus())) {
             HttpResponseStatus status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             if (entity instanceof ErrorResponse) {
-                switch (((ErrorResponse) entity).getError().getCode()) {
-                    case 405:
-                        // hyracks http don't have a status for 405
-                        status = HttpResponseStatus.BAD_REQUEST;
-                        break;
-                    default:
-                        break;
-                }
-
+                status = HttpResponseStatus.valueOf(((ErrorResponse) entity).getError().getCode());
             }
             response.setStatus(status);
         }
     }
 
     /**
-     * This abstract method is supposed to return an object which will be the entity of the response being sent
-     * to the client. Implementing classes doesn't have to worry about the content type of the request.
+     * This abstract method is supposed to return an object which will be the entity of the response being sent to the
+     * client. Implementing classes doesn't have to worry about the content type of the request.
      *
      * @param request {@link IServletRequest} received
      * @return Object to be set as the entity of the response

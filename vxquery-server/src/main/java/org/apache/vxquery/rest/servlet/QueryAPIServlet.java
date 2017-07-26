@@ -18,15 +18,17 @@ package org.apache.vxquery.rest.servlet;
 
 import org.apache.hyracks.http.api.IServletRequest;
 import org.apache.vxquery.app.core.VXQuery;
+import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.Error;
-import org.apache.vxquery.rest.Constants;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
+
+import static org.apache.vxquery.rest.Constants.ErrorCodes.INVALID_INPUT;
 
 /**
  * Servlet to handle query requests.
@@ -49,9 +51,9 @@ public class QueryAPIServlet extends RestAPIServlet {
         QueryRequest queryRequest;
         try {
             queryRequest = getQueryRequest(request);
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
             return APIResponse.newErrorResponse(null, Error.builder()
-                                                              .withCode(405)
+                                                              .withCode(INVALID_INPUT)
                                                               .withMessage("Invalid input")
                                                               .build());
         }

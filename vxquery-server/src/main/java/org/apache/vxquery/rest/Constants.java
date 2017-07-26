@@ -57,6 +57,12 @@ public class Constants {
         public static final String CONTENT_TYPE_XML = "application/xml";
     }
 
+    public class ErrorCodes {
+        public static final int PROBLEM_WITH_QUERY = 400;
+        public static final int UNFORSEEN_PROBLEM = 500;
+        public static final int INVALID_INPUT = 405;
+        public static final int NOT_FOUND = 404;
+    }
 
     public static final String RESULT_URL_PREFIX = "/vxquery/query/result/";
 }

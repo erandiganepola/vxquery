@@ -23,7 +23,6 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.app.core.Status;
@@ -39,15 +38,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
-import static org.apache.vxquery.rest.Constants.Parameters.METRICS;
-import static org.apache.vxquery.rest.Constants.Parameters.REPEAT_EXECUTIONS;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_AST;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_OET;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_RP;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_TET;
-import static org.apache.vxquery.rest.Constants.Parameters.STATEMENT;
-import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
-import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
 /**
  * This class tests the success responses received for XQueries submitted. i.e we are submitting correct queries which
@@ -56,7 +46,7 @@ import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
  *
  * @author Erandi Ganepola
  */
-public class RestServerSuccessResponseTest extends AbstractRestServerTest {
+public class SuccessResponseTest extends AbstractRestServerTest {
 
     @Test
     public void testSimpleQuery001() throws Exception {
@@ -84,21 +74,8 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         runTest(CONTENT_TYPE_XML, request);
     }
 
-
     private void runTest(String contentType, QueryRequest request) throws Exception {
-        URI queryEndpointUri = new URIBuilder()
-                                       .setScheme("http")
-                                       .setHost("localhost")
-                                       .setPort(restPort)
-                                       .setPath(QUERY_ENDPOINT)
-                                       .addParameter(STATEMENT, request.getStatement())
-                                       .addParameter(SHOW_AST, String.valueOf(request.isShowAbstractSyntaxTree()))
-                                       .addParameter(SHOW_TET, String.valueOf(request.isShowTranslatedExpressionTree()))
-                                       .addParameter(SHOW_OET, String.valueOf(request.isShowOptimizedExpressionTree()))
-                                       .addParameter(SHOW_RP, String.valueOf(request.isShowRuntimePlan()))
-                                       .addParameter(REPEAT_EXECUTIONS, String.valueOf(request.getRepeatExecutions()))
-                                       .addParameter(METRICS, String.valueOf(request.isShowMetrics()))
-                                       .build();
+        URI queryEndpointUri = buildQueryURI(request);
 
         /*
          * ========== Query Response Testing ==========
@@ -145,10 +122,10 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
         //Testing the accuracy of REST server and servlets
         QueryResponse actualQueryResponse = getQueryResponse(queryEndpointUri, contentType);
         Assert.assertNotNull(actualQueryResponse.getRequestId());
-        Assert.assertNotNull(actualQueryResponse.getResultUrl());
+        Assert.assertTrue(actualQueryResponse.getResultUrl().startsWith(Constants.RESULT_URL_PREFIX));
         Assert.assertNotEquals(0, actualQueryResponse.getResultId());
-        Assert.assertEquals(request.getStatement(), expectedQueryResponse.getStatement());
-        Assert.assertEquals(Status.SUCCESS.toString(), expectedQueryResponse.getStatus());
+        Assert.assertEquals(request.getStatement(), actualQueryResponse.getStatement());
+        Assert.assertEquals(Status.SUCCESS.toString(), actualQueryResponse.getStatus());
 
         if (request.isShowMetrics()) {
             Assert.assertTrue(actualQueryResponse.getMetrics().getCompileTime() > 0);
@@ -229,13 +206,7 @@ public class RestServerSuccessResponseTest extends AbstractRestServerTest {
      * @throws Exception
      */
     private static QueryResultResponse getQueryResultResponse(QueryResultRequest resultRequest, String accepts) throws Exception {
-        URI queryResultEndpointUri = new URIBuilder()
-                                             .setScheme("http")
-                                             .setHost("localhost")
-                                             .setPort(restPort)
-                                             .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultRequest.getResultId())))
-                                             .setParameter(METRICS, String.valueOf(resultRequest.isMetrics()))
-                                             .build();
+        URI queryResultEndpointUri = buildQueryResultURI(resultRequest);
 
         CloseableHttpClient httpClient = HttpClients.custom()
                                                  .setConnectionTimeToLive(20, TimeUnit.SECONDS)
