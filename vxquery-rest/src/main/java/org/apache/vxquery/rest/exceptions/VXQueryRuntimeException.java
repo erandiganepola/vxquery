@@ -15,35 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.response;
+package org.apache.vxquery.rest.exceptions;
 
-import org.apache.vxquery.app.core.Status;
+/**
+ * A runtime exception to be thrown by the {@link org.apache.vxquery.rest.core.VXQuery} and related classes of the
+ * rest server
+ *
+ * @author Erandi Ganepola
+ */
+public class VXQueryRuntimeException extends RuntimeException {
 
-import javax.xml.bind.annotation.XmlRootElement;
-
-@XmlRootElement
-public class QueryResultResponse extends APIResponse {
-
-    private String results;
-    private Metrics metrics = new Metrics();
-
-    public QueryResultResponse() {
-        super(Status.SUCCESS.toString());
+    public VXQueryRuntimeException(String message) {
+        super(message);
     }
 
-    public String getResults() {
-        return results;
-    }
-
-    public void setResults(String results) {
-        this.results = results;
-    }
-
-    public Metrics getMetrics() {
-        return metrics;
-    }
-
-    public void setMetrics(Metrics metrics) {
-        this.metrics = metrics;
+    public VXQueryRuntimeException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

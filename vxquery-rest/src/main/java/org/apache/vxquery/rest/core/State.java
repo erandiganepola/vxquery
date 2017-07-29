@@ -15,8 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.app.core;
+package org.apache.vxquery.rest.core;
 
+/**
+ * An enum to represent states of {@link VXQuery} class
+ *
+ * @author Erandi Ganepola
+ */
 public enum State {
     STARTING,
     STARTED,

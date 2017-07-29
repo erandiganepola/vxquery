@@ -17,7 +17,7 @@
 
 package org.apache.vxquery.rest.response;
 
-import org.apache.vxquery.app.core.Status;
+import org.apache.vxquery.rest.core.Status;
 
 public class APIResponse {
 

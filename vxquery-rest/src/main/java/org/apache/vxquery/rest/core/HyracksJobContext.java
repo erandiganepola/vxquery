@@ -15,11 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.app.core;
+package org.apache.vxquery.rest.core;
 
 import org.apache.hyracks.api.dataset.ResultSetId;
 import org.apache.hyracks.api.job.JobId;
 
+/**
+ * A class to map {@link ResultSetId} with {@link JobId} when a job is submitted to hyracks. This mapping will later be
+ * used to determine the {@link JobId} instance of the corresponding {@link ResultSetId}
+ *
+ * @author Erandi Ganepola
+ */
 public class HyracksJobContext {
 
     private JobId jobId;

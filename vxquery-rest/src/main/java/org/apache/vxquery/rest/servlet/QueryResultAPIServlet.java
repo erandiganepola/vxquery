@@ -19,7 +19,8 @@ package org.apache.vxquery.rest.servlet;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.hyracks.http.api.IServletRequest;
-import org.apache.vxquery.app.core.VXQuery;
+import org.apache.vxquery.rest.Constants;
+import org.apache.vxquery.rest.core.VXQuery;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.Error;
@@ -27,8 +28,6 @@ import org.apache.vxquery.rest.response.Error;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
-
-import static org.apache.vxquery.rest.Constants.Parameters.METRICS;
 
 /**
  * Servlet to handle query results requests.
@@ -62,7 +61,7 @@ public class QueryResultAPIServlet extends RestAPIServlet {
         }
 
         QueryResultRequest resultRequest = new QueryResultRequest(resultId, UUID.randomUUID().toString());
-        resultRequest.setMetrics(Boolean.parseBoolean(request.getParameter(METRICS)));
+        resultRequest.setMetrics(Boolean.parseBoolean(request.getParameter(Constants.Parameters.METRICS)));
         LOGGER.log(Level.INFO, String.format("Received a result request with resultId : %d", resultRequest.getResultId()));
         return vxQuery.getResult(resultRequest);
     }

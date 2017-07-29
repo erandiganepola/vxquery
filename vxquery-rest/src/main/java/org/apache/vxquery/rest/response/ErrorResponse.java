@@ -15,23 +15,42 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.exceptions;
+package org.apache.vxquery.rest.response;
 
-import org.apache.vxquery.app.core.VXQuery;
+import org.apache.vxquery.rest.core.Status;
+
+import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * A runtime exception to be thrown by the {@link VXQuery} and related classes of the
- * rest server
+ * <pre>
+ *     {@code
+ *     <errorResponse>
+ *         <status>FATAL</status>
+ *         <requestId>jabsa-jkk77j-hbah45-jknasj-jjlas</requestId>
+ *         <error>
+ *             <code>405</code>
+ *             <message>Invalid Input</message>
+ *         </error>
+ *     </errorResponse>
+ *     }
+ * </pre>
  *
  * @author Erandi Ganepola
  */
-public class VXQueryRuntimeException extends RuntimeException {
+@XmlRootElement
+public class ErrorResponse extends APIResponse {
 
-    public VXQueryRuntimeException(String message) {
-        super(message);
+    private Error error;
+
+    public ErrorResponse() {
+        super(Status.FATAL.toString());
     }
 
-    public VXQueryRuntimeException(String message, Throwable cause) {
-        super(message, cause);
+    public Error getError() {
+        return error;
+    }
+
+    public void setError(Error error) {
+        this.error = error;
     }
 }

@@ -22,8 +22,8 @@ import org.apache.hyracks.api.application.ICCApplicationEntryPoint;
 import org.apache.hyracks.api.client.ClusterControllerInfo;
 import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.RestServer;
-import org.apache.vxquery.app.core.VXQuery;
-import org.apache.vxquery.app.core.VXQueryConfig;
+import org.apache.vxquery.rest.core.VXQuery;
+import org.apache.vxquery.rest.core.VXQueryConfig;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 
 import java.io.FileInputStream;

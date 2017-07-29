@@ -19,6 +19,18 @@ package org.apache.vxquery.rest.response;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+/**
+ * Represents the <pre>error</pre> part of an {@link ErrorResponse}.
+ * <pre>
+ *     {@code
+ *     <error>
+ *         <code>405</code>
+ *         <message>Invalid Input</message>
+ *     </error>}
+ * </pre>
+ *
+ * @author Erandi Ganepola
+ */
 @XmlRootElement
 public class Error {
 

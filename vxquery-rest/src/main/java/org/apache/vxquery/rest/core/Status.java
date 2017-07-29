@@ -15,8 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.app.core;
+package org.apache.vxquery.rest.core;
 
+/**
+ * There can only 2 states for a response from the {@link org.apache.vxquery.rest.RestServer}. They are,
+ * <pre>SUCCESS</pre> and <pre>FATAL</pre>. This enum represents those two types.
+ *
+ * @author Erandi Ganepola
+ */
 public enum Status {
     SUCCESS("success"),
     FATAL("fatal");

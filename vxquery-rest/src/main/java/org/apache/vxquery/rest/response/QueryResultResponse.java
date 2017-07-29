@@ -17,24 +17,33 @@
 
 package org.apache.vxquery.rest.response;
 
-import org.apache.vxquery.app.core.Status;
+import org.apache.vxquery.rest.core.Status;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
-public class ErrorResponse extends APIResponse {
+public class QueryResultResponse extends APIResponse {
 
-    private Error error;
+    private String results;
+    private Metrics metrics = new Metrics();
 
-    public ErrorResponse() {
-        super(Status.FATAL.toString());
+    public QueryResultResponse() {
+        super(Status.SUCCESS.toString());
     }
 
-    public Error getError() {
-        return error;
+    public String getResults() {
+        return results;
     }
 
-    public void setError(Error error) {
-        this.error = error;
+    public void setResults(String results) {
+        this.results = results;
+    }
+
+    public Metrics getMetrics() {
+        return metrics;
+    }
+
+    public void setMetrics(Metrics metrics) {
+        this.metrics = metrics;
     }
 }

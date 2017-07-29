@@ -15,11 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.app.core;
+package org.apache.vxquery.rest.core;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A class to store default/user specified configurations required at runtime by the {@link VXQuery} class. These
+ * configuration will be loaded through a properties file.
+ *
+ * @author Erandi Ganepola
+ */
 public class VXQueryConfig {
 
     /** Number of available processors. (default: java's available processors) */
