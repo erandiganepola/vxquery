@@ -25,8 +25,8 @@ import org.apache.hyracks.control.common.controllers.CCConfig;
 import org.apache.hyracks.control.common.controllers.NCConfig;
 import org.apache.hyracks.control.nc.NodeControllerService;
 import org.apache.vxquery.app.VXQueryApplication;
-import org.apache.vxquery.rest.core.VXQuery;
-import org.apache.vxquery.rest.core.VXQueryConfig;
+import org.apache.vxquery.core.VXQuery;
+import org.apache.vxquery.core.VXQueryConfig;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.junit.AfterClass;
@@ -177,7 +177,7 @@ public class AbstractRestServerTest {
                        .setHost("localhost")
                        .setPort(restPort)
                        .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultRequest.getResultId())))
-                       .setParameter(METRICS, String.valueOf(resultRequest.isMetrics()))
+                       .setParameter(METRICS, String.valueOf(resultRequest.isShowMetrics()))
                        .build();
     }
 

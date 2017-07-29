@@ -15,16 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.core;
+package org.apache.vxquery.core;
 
 /**
- * An enum to represent states of {@link VXQuery} class
+ * There can only 2 states for a response from the {@link org.apache.vxquery.rest.RestServer}. They are,
+ * <pre>SUCCESS</pre> and <pre>FATAL</pre>. This enum represents those two types.
  *
  * @author Erandi Ganepola
  */
-public enum State {
-    STARTING,
-    STARTED,
-    STOPPING,
-    STOPPED
+public enum Status {
+    SUCCESS("success"),
+    FATAL("fatal");
+
+    private final String name;
+
+    Status(String name) {
+        this.name = name;
+    }
+
+    public String toString() {
+        return name;
+    }
 }

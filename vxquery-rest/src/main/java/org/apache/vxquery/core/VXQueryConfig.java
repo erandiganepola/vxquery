@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.core;
+package org.apache.vxquery.core;
 
 import java.util.HashMap;
 import java.util.Map;

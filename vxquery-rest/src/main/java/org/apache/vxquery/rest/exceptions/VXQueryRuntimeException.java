@@ -17,8 +17,10 @@
 
 package org.apache.vxquery.rest.exceptions;
 
+import org.apache.vxquery.core.VXQuery;
+
 /**
- * A runtime exception to be thrown by the {@link org.apache.vxquery.rest.core.VXQuery} and related classes of the
+ * A runtime exception to be thrown by the {@link VXQuery} and related classes of the
  * rest server
  *
  * @author Erandi Ganepola

@@ -26,7 +26,7 @@ import org.apache.hyracks.http.api.IServletResponse;
 import org.apache.hyracks.http.server.AbstractServlet;
 import org.apache.hyracks.http.server.utils.HttpUtil;
 import org.apache.vxquery.rest.Constants;
-import org.apache.vxquery.rest.core.Status;
+import org.apache.vxquery.core.Status;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
 import org.apache.vxquery.rest.response.APIResponse;

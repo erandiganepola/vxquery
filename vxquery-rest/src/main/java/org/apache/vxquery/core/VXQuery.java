@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.vxquery.rest.core;
+package org.apache.vxquery.core;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.DomDriver;
@@ -155,30 +155,24 @@ public class VXQuery {
         response.setResultId(resultSetId.getId());
         response.setResultUrl(Constants.RESULT_URL_PREFIX + resultSetId.getId());
 
-        Date start;
-        Date end;
-
-        // Adding a query compilation listener
-        VXQueryCompilationListener listener = new VXQueryCompilationListener(response,
-                                                                                    request.isShowAbstractSyntaxTree(),
-                                                                                    request.isShowTranslatedExpressionTree(),
-                                                                                    request.isShowOptimizedExpressionTree(),
-                                                                                    request.isShowRuntimePlan());
-
         // Obtaining the node controller information from hyracks client connection
         Map<String, NodeControllerInfo> nodeControllerInfos = null;
         try {
             nodeControllerInfos = hyracksClientConnection.getNodeControllerInfos();
         } catch (HyracksException e) {
             LOGGER.log(Level.SEVERE, String.format("Error occurred when obtaining NC info: '%s'", e.getMessage()));
-            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
-                                                                                .withCode(UNFORSEEN_PROBLEM)
+            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(UNFORSEEN_PROBLEM)
                                                                                 .withMessage("Hyracks connection problem: " + e.getMessage())
                                                                                 .build());
         }
 
-        start = request.isShowMetrics() ? new Date() : null;
+        // Adding a query compilation listener
+        VXQueryCompilationListener listener = new VXQueryCompilationListener(response, request.isShowAbstractSyntaxTree(),
+                                                                                    request.isShowTranslatedExpressionTree(),
+                                                                                    request.isShowOptimizedExpressionTree(),
+                                                                                    request.isShowRuntimePlan());
 
+        Date start = new Date();
         // Compiling the XQuery given
         final XMLQueryCompiler compiler = new XMLQueryCompiler(listener, nodeControllerInfos,
                                                                       request.getFrameSize(),
@@ -192,21 +186,18 @@ public class VXQuery {
             compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization(), null);
         } catch (AlgebricksException e) {
             LOGGER.log(Level.SEVERE, String.format("Error occurred when compiling query: '%s' with message: '%s'", query, e.getMessage()));
-            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
-                                                                                .withCode(PROBLEM_WITH_QUERY)
+            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(PROBLEM_WITH_QUERY)
                                                                                 .withMessage("Query compilation failure: " + e.getMessage())
                                                                                 .build());
         } catch (SystemException e) {
             LOGGER.log(Level.SEVERE, String.format("Error occurred when compiling query: '%s' with message: '%s'", query, e.getMessage()));
-            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
-                                                                                .withCode(PROBLEM_WITH_QUERY)
+            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(PROBLEM_WITH_QUERY)
                                                                                 .withMessage("Query compilation failure: " + e.getMessage())
                                                                                 .build());
         }
 
         if (request.isShowMetrics()) {
-            end = new Date();
-            response.getMetrics().setCompileTime(end.getTime() - start.getTime());
+            response.getMetrics().setCompileTime(new Date().getTime() - start.getTime());
         }
 
         if (!request.isCompileOnly()) {
@@ -215,15 +206,19 @@ public class VXQuery {
             DynamicContext dCtx = new DynamicContextImpl(module.getModuleContext());
             js.setGlobalJobDataFactory(new VXQueryGlobalDataFactory(dCtx.createFactory()));
 
+            start = new Date();
             try {
                 JobId jobId = hyracksClientConnection.startJob(js, EnumSet.of(JobFlag.PROFILE_RUNTIME));
                 jobContexts.put(resultSetId.getId(), new HyracksJobContext(jobId, js.getFrameSize(), resultSetId));
             } catch (Exception e) {
                 LOGGER.log(SEVERE, "Error occurred when submitting job to hyracks for query: " + query, e);
-                return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
-                                                                                    .withCode(UNFORSEEN_PROBLEM)
+                return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(UNFORSEEN_PROBLEM)
                                                                                     .withMessage("Error occurred when starting hyracks job")
                                                                                     .build());
+            }
+
+            if (request.isShowMetrics()) {
+                response.getMetrics().setElapsedTime(new Date().getTime() - start.getTime());
             }
         }
         return response;
@@ -241,21 +236,26 @@ public class VXQuery {
     public APIResponse getResult(QueryResultRequest request) {
         if (jobContexts.containsKey(request.getResultId())) {
             QueryResultResponse resultResponse = APIResponse.newQueryResultResponse(request.getRequestId());
+            Date start = new Date();
             try {
                 readResults(jobContexts.get(request.getResultId()), resultResponse);
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error occurred when reading results for id : " + request.getResultId());
-                return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
-                                                                                    .withCode(UNFORSEEN_PROBLEM)
-                                                                                    .withMessage("Error occurred when reading results from hyracks for result ID: " + request.getResultId())
-                                                                                    .build());
+                return APIResponse.newErrorResponse(request.getRequestId(),
+                        Error.builder().withCode(UNFORSEEN_PROBLEM)
+                                .withMessage("Error occurred when reading results from hyracks for result ID: " + request.getResultId())
+                                .build());
             }
+
+            if (request.isShowMetrics()) {
+                resultResponse.getMetrics().setElapsedTime(new Date().getTime() - start.getTime());
+            }
+
             return resultResponse;
         } else {
-            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder()
-                                                                                .withCode(NOT_FOUND)
-                                                                                .withMessage("No query found for result ID : " + request.getResultId())
-                                                                                .build());
+            return APIResponse.newErrorResponse(request.getRequestId(),
+                    Error.builder().withCode(NOT_FOUND)
+                            .withMessage("No query found for result ID : " + request.getResultId()).build());
         }
     }
 

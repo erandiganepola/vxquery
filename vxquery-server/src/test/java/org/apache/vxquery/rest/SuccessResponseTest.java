@@ -25,7 +25,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.vxquery.rest.core.Status;
+import org.apache.vxquery.core.Status;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.QueryResponse;
@@ -119,6 +119,9 @@ public class SuccessResponseTest extends AbstractRestServerTest {
             Assert.assertNull(expectedQueryResponse.getRuntimePlan());
         }
 
+        checkMetrics(expectedQueryResponse, request.isShowMetrics());
+
+
         //Testing the accuracy of REST server and servlets
         QueryResponse actualQueryResponse = getQueryResponse(queryEndpointUri, contentType);
         Assert.assertNotNull(actualQueryResponse.getRequestId());
@@ -126,12 +129,7 @@ public class SuccessResponseTest extends AbstractRestServerTest {
         Assert.assertNotEquals(0, actualQueryResponse.getResultId());
         Assert.assertEquals(request.getStatement(), actualQueryResponse.getStatement());
         Assert.assertEquals(Status.SUCCESS.toString(), actualQueryResponse.getStatus());
-
-        if (request.isShowMetrics()) {
-            Assert.assertTrue(actualQueryResponse.getMetrics().getCompileTime() > 0);
-        } else {
-            Assert.assertTrue(actualQueryResponse.getMetrics().getCompileTime() == 0);
-        }
+        checkMetrics(actualQueryResponse, request.isShowMetrics());
 
         // Cannot check this because Runtime plan include some object IDs which differ
         // Assert.assertEquals(expectedQueryResponse.getRuntimePlan(), actualQueryResponse.getRuntimePlan());
@@ -145,7 +143,7 @@ public class SuccessResponseTest extends AbstractRestServerTest {
          */
 
         QueryResultRequest resultRequest = new QueryResultRequest(actualQueryResponse.getResultId(), null);
-        resultRequest.setMetrics(true);
+        resultRequest.setShowMetrics(true);
 
         QueryResultResponse expectedResultResponse = (QueryResultResponse) vxQuery.getResult(resultRequest);
         Assert.assertEquals(expectedResultResponse.getStatus(), Status.SUCCESS.toString());
@@ -157,7 +155,21 @@ public class SuccessResponseTest extends AbstractRestServerTest {
         Assert.assertNotNull(actualResultResponse.getRequestId());
         Assert.assertEquals(normalize(expectedResultResponse.getResults()), normalize(actualResultResponse.getResults()));
 
-        // TODO: 7/25/17 Metrics check
+        if (resultRequest.isShowMetrics()) {
+            Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() > 0);
+        } else {
+            Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() == 0);
+        }
+    }
+
+    private void checkMetrics(QueryResponse response, boolean showMetrics) {
+        if (showMetrics) {
+            Assert.assertTrue(response.getMetrics().getCompileTime() > 0);
+            Assert.assertTrue(response.getMetrics().getElapsedTime() > 0);
+        } else {
+            Assert.assertTrue(response.getMetrics().getCompileTime() == 0);
+            Assert.assertTrue(response.getMetrics().getElapsedTime() == 0);
+        }
     }
 
     private static String normalize(String string) {

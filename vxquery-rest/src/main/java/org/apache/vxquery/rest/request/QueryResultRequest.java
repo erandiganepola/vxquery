@@ -27,7 +27,7 @@ import org.apache.vxquery.rest.RestServer;
 public class QueryResultRequest {
 
     private long resultId;
-    private boolean metrics = false;
+    private boolean showMetrics = false;
     private String requestId;
 
     public QueryResultRequest(long resultId, String requestId) {
@@ -39,12 +39,12 @@ public class QueryResultRequest {
         return resultId;
     }
 
-    public boolean isMetrics() {
-        return metrics;
+    public boolean isShowMetrics() {
+        return showMetrics;
     }
 
-    public void setMetrics(boolean metrics) {
-        this.metrics = metrics;
+    public void setShowMetrics(boolean showMetrics) {
+        this.showMetrics = showMetrics;
     }
 
     public String getRequestId() {
