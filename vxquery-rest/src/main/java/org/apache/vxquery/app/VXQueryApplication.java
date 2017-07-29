@@ -20,11 +20,12 @@ package org.apache.vxquery.app;
 import org.apache.hyracks.api.application.ICCApplicationContext;
 import org.apache.hyracks.api.application.ICCApplicationEntryPoint;
 import org.apache.hyracks.api.client.ClusterControllerInfo;
-import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.RestServer;
 import org.apache.vxquery.rest.core.VXQuery;
 import org.apache.vxquery.rest.core.VXQueryConfig;
 import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -46,9 +47,20 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
 
     @Override
     public void start(ICCApplicationContext ccAppCtx, String[] args) throws Exception {
-        VXQueryConfig config = loadConfiguration(ccAppCtx.getCCContext().getClusterControllerInfo());
+        AppArgs appArgs = new AppArgs();
+        if (args != null) {
+            CmdLineParser parser = new CmdLineParser(appArgs);
+            try {
+                parser.parseArgument(args);
+            } catch (Exception e) {
+                parser.printUsage(System.err);
+                throw new VXQueryRuntimeException("Unable to parse app arguments", e);
+            }
+        }
+
+        VXQueryConfig config = loadConfiguration(ccAppCtx.getCCContext().getClusterControllerInfo(), appArgs.getVxqueryConfig());
         vxQuery = new VXQuery(config);
-        restServer = new RestServer(vxQuery);
+        restServer = new RestServer(vxQuery, appArgs.getRestPort());
     }
 
     public synchronized void stop() {
@@ -79,14 +91,13 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
         }
     }
 
-    private VXQueryConfig loadConfiguration(ClusterControllerInfo clusterControllerInfo) {
+    private VXQueryConfig loadConfiguration(ClusterControllerInfo clusterControllerInfo, String propertiesFile) {
         VXQueryConfig vxQueryConfig = new VXQueryConfig();
-        String file = System.getProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE);
-        if (file != null) {
-            try (InputStream in = new FileInputStream(file)) {
+        if (propertiesFile != null) {
+            try (InputStream in = new FileInputStream(propertiesFile)) {
                 System.getProperties().load(in);
             } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, String.format("Error occurred when loading properties file %s", file), e);
+                LOGGER.log(Level.SEVERE, String.format("Error occurred when loading properties file %s", propertiesFile), e);
             }
         }
 
@@ -103,5 +114,32 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
 
     public RestServer getRestServer() {
         return restServer;
+    }
+
+    /**
+     * Application Arguments bean class
+     */
+    private class AppArgs {
+        @Option(name = "-restPort", usage = "The port on which REST server starts")
+        private int restPort = 8080;
+
+        @Option(name = "-appConfig", usage = "Properties file location which includes VXQuery Application additional configuration")
+        private String vxqueryConfig = null;
+
+        public String getVxqueryConfig() {
+            return vxqueryConfig;
+        }
+
+        public void setVxqueryConfig(String vxqueryConfig) {
+            this.vxqueryConfig = vxqueryConfig;
+        }
+
+        public int getRestPort() {
+            return restPort;
+        }
+
+        public void setRestPort(int restPort) {
+            this.restPort = restPort;
+        }
     }
 }

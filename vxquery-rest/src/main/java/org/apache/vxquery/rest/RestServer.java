@@ -27,6 +27,9 @@ import org.apache.vxquery.rest.servlet.QueryResultAPIServlet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
+import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
+
 /**
  * REST Server class responsible for starting a new server on a given port.
  *
@@ -39,30 +42,29 @@ public class RestServer {
     private WebManager webManager;
     private int port;
 
-    public RestServer(VXQuery vxQuery) {
-        try {
-            webManager = new WebManager();
-            port = Integer.parseInt(System.getProperty(Constants.Properties.REST_SERVER_PORT, "8085"));
-            HttpServer restServer = new HttpServer(webManager.getBosses(), webManager.getWorkers(), port);
-
-            restServer.addServlet(new QueryAPIServlet(vxQuery, restServer.ctx(), Constants.URLs.QUERY_ENDPOINT));
-            restServer.addServlet(new QueryResultAPIServlet(vxQuery, restServer.ctx(), Constants.URLs.QUERY_RESULT_ENDPOINT));
-            webManager.add(restServer);
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error occurred when creating rest server", e);
-            throw e;
+    public RestServer(VXQuery vxQuery, int port) {
+        if (port == 0) {
+            throw new IllegalArgumentException("REST Server port cannot be 0");
         }
+
+        this.port = port;
+
+        webManager = new WebManager();
+        HttpServer restServer = new HttpServer(webManager.getBosses(), webManager.getWorkers(), this.port);
+        restServer.addServlet(new QueryAPIServlet(vxQuery, restServer.ctx(), QUERY_ENDPOINT));
+        restServer.addServlet(new QueryResultAPIServlet(vxQuery, restServer.ctx(), QUERY_RESULT_ENDPOINT));
+        webManager.add(restServer);
     }
 
     public void start() {
         try {
-            LOGGER.log(Level.FINE, "Starting rest server");
+            LOGGER.log(Level.FINE, "Starting rest server on port: " + port);
             webManager.start();
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when starting rest server", e);
             throw new VXQueryRuntimeException("Unable to start REST server", e);
         }
-        LOGGER.log(Level.INFO, "Rest server started");
+        LOGGER.log(Level.INFO, "Rest server started on port: " + port);
     }
 
     public void stop() {

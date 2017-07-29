@@ -44,6 +44,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.util.Arrays;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
@@ -54,7 +55,6 @@ import static org.apache.vxquery.rest.Constants.Parameters.SHOW_OET;
 import static org.apache.vxquery.rest.Constants.Parameters.SHOW_RP;
 import static org.apache.vxquery.rest.Constants.Parameters.SHOW_TET;
 import static org.apache.vxquery.rest.Constants.Parameters.STATEMENT;
-import static org.apache.vxquery.rest.Constants.Properties.REST_SERVER_PORT;
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
 import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
@@ -66,16 +66,15 @@ import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
  */
 public class AbstractRestServerTest {
 
+    protected static final int restPort = 8085;
+
     private static ClusterControllerService clusterControllerService;
     private static NodeControllerService nodeControllerService;
 
-    protected static int restPort;
     protected static VXQuery vxQuery;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        System.setProperty(Constants.Properties.VXQUERY_PROPERTIES_FILE, "src/test/resources/vxquery.properties");
-
         startLocalHyracks();
 
         CCConfig ccConfig = clusterControllerService.getCCConfig();
@@ -84,8 +83,6 @@ public class AbstractRestServerTest {
         config.setHyracksClientPort(ccConfig.clientNetPort);
         vxQuery = new VXQuery(config);
         vxQuery.start();
-
-        restPort = Integer.parseInt(System.getProperty(REST_SERVER_PORT, "8085"));
     }
 
     /**
@@ -104,6 +101,7 @@ public class AbstractRestServerTest {
         ccConfig.httpPort = 39002;
         ccConfig.profileDumpPeriod = 10000;
         ccConfig.appCCMainClass = VXQueryApplication.class.getName();
+        ccConfig.appArgs = Arrays.asList("-restPort", String.valueOf(restPort));
         clusterControllerService = new ClusterControllerService(ccConfig);
         clusterControllerService.start();
 
