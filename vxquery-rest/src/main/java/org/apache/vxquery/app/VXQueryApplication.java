@@ -23,7 +23,7 @@ import org.apache.hyracks.api.client.ClusterControllerInfo;
 import org.apache.vxquery.rest.RestServer;
 import org.apache.vxquery.core.VXQuery;
 import org.apache.vxquery.core.VXQueryConfig;
-import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
+import org.apache.vxquery.exceptions.VXQueryRuntimeException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 

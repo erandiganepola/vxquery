@@ -15,13 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.exceptions;
-
-import org.apache.vxquery.core.VXQuery;
+package org.apache.vxquery.exceptions;
 
 /**
- * A runtime exception to be thrown by the {@link VXQuery} and related classes of the
- * rest server
+ * A runtime exception to be thrown by the VXQuery and related classes of the rest server
  *
  * @author Erandi Ganepola
  */

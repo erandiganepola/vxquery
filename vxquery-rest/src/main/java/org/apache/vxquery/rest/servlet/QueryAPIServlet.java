@@ -19,7 +19,7 @@ package org.apache.vxquery.rest.servlet;
 import org.apache.hyracks.http.api.IServletRequest;
 import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.core.VXQuery;
-import org.apache.vxquery.rest.exceptions.VXQueryServletRuntimeException;
+import org.apache.vxquery.exceptions.VXQueryServletRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.Error;

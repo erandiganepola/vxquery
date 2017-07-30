@@ -128,59 +128,6 @@ public class AbstractRestServerTest {
         clusterControllerService.stop();
     }
 
-    public static String readEntity(HttpEntity entity) throws IOException {
-        StringBuilder responseBody = new StringBuilder();
-
-        try (InputStream in = entity.getContent()) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                responseBody.append(line);
-            }
-        }
-        return responseBody.toString();
-    }
-
-    public static <T> T mapEntity(String entity, Class<T> type, String contentType) throws IOException, JAXBException {
-        switch (contentType) {
-            case CONTENT_TYPE_JSON:
-                ObjectMapper jsonMapper = new ObjectMapper();
-                return jsonMapper.readValue(entity, type);
-            case CONTENT_TYPE_XML:
-                JAXBContext jaxbContext = JAXBContext.newInstance(type);
-                Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-                return type.cast(unmarshaller.unmarshal(new StringReader(entity)));
-        }
-
-        throw new IllegalArgumentException("Entity didn't match any content type");
-    }
-
-    public static URI buildQueryURI(QueryRequest request) throws URISyntaxException {
-        return new URIBuilder()
-                       .setScheme("http")
-                       .setHost("localhost")
-                       .setPort(restPort)
-                       .setPath(QUERY_ENDPOINT)
-                       .addParameter(STATEMENT, request.getStatement())
-                       .addParameter(SHOW_AST, String.valueOf(request.isShowAbstractSyntaxTree()))
-                       .addParameter(SHOW_TET, String.valueOf(request.isShowTranslatedExpressionTree()))
-                       .addParameter(SHOW_OET, String.valueOf(request.isShowOptimizedExpressionTree()))
-                       .addParameter(SHOW_RP, String.valueOf(request.isShowRuntimePlan()))
-                       .addParameter(REPEAT_EXECUTIONS, String.valueOf(request.getRepeatExecutions()))
-                       .addParameter(METRICS, String.valueOf(request.isShowMetrics()))
-                       .build();
-    }
-
-    public static URI buildQueryResultURI(QueryResultRequest resultRequest) throws URISyntaxException {
-        return new URIBuilder()
-                       .setScheme("http")
-                       .setHost("localhost")
-                       .setPort(restPort)
-                       .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultRequest.getResultId())))
-                       .setParameter(METRICS, String.valueOf(resultRequest.isShowMetrics()))
-                       .build();
-    }
-
     @AfterClass
     public static void tearDown() throws Exception {
         vxQuery.stop();

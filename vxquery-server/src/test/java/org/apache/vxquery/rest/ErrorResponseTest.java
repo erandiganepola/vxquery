@@ -24,6 +24,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.ErrorResponse;
 import org.junit.Assert;
@@ -85,7 +86,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     }
 
     private void runTest(QueryRequest request, String accepts, int expectedStatusCode) throws Exception {
-        URI queryEndpointUri = buildQueryURI(request);
+        URI queryEndpointUri = RestUtils.buildQueryURI(request, "localhost", restPort);
 
         CloseableHttpClient httpClient = HttpClients.custom()
                                                  .setConnectionTimeToLive(20, TimeUnit.SECONDS)
@@ -103,8 +104,8 @@ public class ErrorResponseTest extends AbstractRestServerTest {
                 HttpEntity entity = httpResponse.getEntity();
                 Assert.assertNotNull(entity);
 
-                String response = readEntity(entity);
-                errorResponse = mapEntity(response, ErrorResponse.class, accepts);
+                String response = RestUtils.readEntity(entity);
+                errorResponse = RestUtils.mapEntity(response, ErrorResponse.class, accepts);
             }
         } finally {
             HttpClientUtils.closeQuietly(httpClient);

@@ -48,7 +48,7 @@ import org.apache.vxquery.context.RootStaticContextImpl;
 import org.apache.vxquery.context.StaticContextImpl;
 import org.apache.vxquery.exceptions.SystemException;
 import org.apache.vxquery.rest.Constants;
-import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
+import org.apache.vxquery.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.APIResponse;

@@ -20,7 +20,7 @@ package org.apache.vxquery.rest;
 import org.apache.hyracks.http.server.HttpServer;
 import org.apache.hyracks.http.server.WebManager;
 import org.apache.vxquery.core.VXQuery;
-import org.apache.vxquery.rest.exceptions.VXQueryRuntimeException;
+import org.apache.vxquery.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.servlet.QueryAPIServlet;
 import org.apache.vxquery.rest.servlet.QueryResultAPIServlet;
 

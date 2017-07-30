@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.exceptions;
+package org.apache.vxquery.exceptions;
 
 /**
  * A runtime exception class to be used to be thrown when runtime errors occur within servlets.

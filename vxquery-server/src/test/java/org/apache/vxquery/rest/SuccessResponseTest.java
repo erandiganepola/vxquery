@@ -25,6 +25,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.core.Status;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
@@ -75,12 +76,11 @@ public class SuccessResponseTest extends AbstractRestServerTest {
     }
 
     private void runTest(String contentType, QueryRequest request) throws Exception {
-        URI queryEndpointUri = buildQueryURI(request);
+        URI queryEndpointUri = RestUtils.buildQueryURI(request, "localhost", restPort);
 
         /*
          * ========== Query Response Testing ==========
          */
-
         // Testing the accuracy of VXQuery class
         QueryResponse expectedQueryResponse = (QueryResponse) vxQuery.execute(request);
 
@@ -121,7 +121,6 @@ public class SuccessResponseTest extends AbstractRestServerTest {
 
         checkMetrics(expectedQueryResponse, request.isShowMetrics());
 
-
         //Testing the accuracy of REST server and servlets
         QueryResponse actualQueryResponse = getQueryResponse(queryEndpointUri, contentType);
         Assert.assertNotNull(actualQueryResponse.getRequestId());
@@ -141,7 +140,6 @@ public class SuccessResponseTest extends AbstractRestServerTest {
         /*
          * ========== Query Result Response Testing ========
          */
-
         QueryResultRequest resultRequest = new QueryResultRequest(actualQueryResponse.getResultId(), null);
         resultRequest.setShowMetrics(true);
 
@@ -177,7 +175,7 @@ public class SuccessResponseTest extends AbstractRestServerTest {
     }
 
     /**
-     * Submit a {@link QueryRequest} and fecth the resulting {@link QueryResponse}
+     * Submit a {@link QueryRequest} and fetth the resulting {@link QueryResponse}
      *
      * @param uri     uri of the GET request
      * @param accepts application/json | application/xml
@@ -200,8 +198,8 @@ public class SuccessResponseTest extends AbstractRestServerTest {
                 HttpEntity entity = httpResponse.getEntity();
                 Assert.assertNotNull(entity);
 
-                String response = readEntity(entity);
-                return mapEntity(response, QueryResponse.class, accepts);
+                String response = RestUtils.readEntity(entity);
+                return RestUtils.mapEntity(response, QueryResponse.class, accepts);
             }
         } finally {
             HttpClientUtils.closeQuietly(httpClient);
@@ -218,7 +216,7 @@ public class SuccessResponseTest extends AbstractRestServerTest {
      * @throws Exception
      */
     private static QueryResultResponse getQueryResultResponse(QueryResultRequest resultRequest, String accepts) throws Exception {
-        URI queryResultEndpointUri = buildQueryResultURI(resultRequest);
+        URI queryResultEndpointUri = RestUtils.buildQueryResultURI(resultRequest, "localhost", restPort);
 
         CloseableHttpClient httpClient = HttpClients.custom()
                                                  .setConnectionTimeToLive(20, TimeUnit.SECONDS)
@@ -235,8 +233,8 @@ public class SuccessResponseTest extends AbstractRestServerTest {
                 HttpEntity entity = httpResponse.getEntity();
                 Assert.assertNotNull(entity);
 
-                String response = readEntity(entity);
-                return mapEntity(response, QueryResultResponse.class, accepts);
+                String response = RestUtils.readEntity(entity);
+                return RestUtils.mapEntity(response, QueryResultResponse.class, accepts);
             }
         } finally {
             HttpClientUtils.closeQuietly(httpClient);
