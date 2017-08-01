@@ -20,7 +20,6 @@ package org.apache.vxquery.app.util;
 import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 
@@ -35,20 +34,20 @@ import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
-import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
-import static org.apache.vxquery.rest.Constants.Parameters.COMPILE_ONLY;
-import static org.apache.vxquery.rest.Constants.Parameters.FRAME_SIZE;
-import static org.apache.vxquery.rest.Constants.Parameters.METRICS;
-import static org.apache.vxquery.rest.Constants.Parameters.OPTIMIZATION;
-import static org.apache.vxquery.rest.Constants.Parameters.REPEAT_EXECUTIONS;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_AST;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_OET;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_RP;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_TET;
-import static org.apache.vxquery.rest.Constants.Parameters.STATEMENT;
-import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
-import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
+import static org.apache.vxquery.core.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
+import static org.apache.vxquery.core.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
+import static org.apache.vxquery.core.Constants.Parameters.COMPILE_ONLY;
+import static org.apache.vxquery.core.Constants.Parameters.FRAME_SIZE;
+import static org.apache.vxquery.core.Constants.Parameters.METRICS;
+import static org.apache.vxquery.core.Constants.Parameters.OPTIMIZATION;
+import static org.apache.vxquery.core.Constants.Parameters.REPEAT_EXECUTIONS;
+import static org.apache.vxquery.core.Constants.Parameters.SHOW_AST;
+import static org.apache.vxquery.core.Constants.Parameters.SHOW_OET;
+import static org.apache.vxquery.core.Constants.Parameters.SHOW_RP;
+import static org.apache.vxquery.core.Constants.Parameters.SHOW_TET;
+import static org.apache.vxquery.core.Constants.Parameters.STATEMENT;
+import static org.apache.vxquery.core.Constants.URLs.QUERY_ENDPOINT;
+import static org.apache.vxquery.core.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
 public class RestUtils {
 

@@ -53,10 +53,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
-import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
+import static org.apache.vxquery.core.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 
 
-public class VXQueryCLI {
+public class VXQuery {
 
     private final CmdLineOptions opts;
 
@@ -72,7 +72,7 @@ public class VXQueryCLI {
      *
      * @param opts Command line options object
      */
-    public VXQueryCLI(CmdLineOptions opts) {
+    public VXQuery(CmdLineOptions opts) {
         this.opts = opts;
     }
 
@@ -100,7 +100,7 @@ public class VXQueryCLI {
             return;
         }
 
-        VXQueryCLI vxq = new VXQueryCLI(opts);
+        VXQuery vxq = new VXQuery(opts);
         vxq.execute(opts.xqFiles);
     }
 
@@ -224,7 +224,7 @@ public class VXQueryCLI {
      * @param request {@link QueryRequest} instance to be submitted to REST API
      * @param cli     cli class instance
      */
-    private static void sendQueryRequest(String xqFile, QueryRequest request, VXQueryCLI cli) {
+    private static void sendQueryRequest(String xqFile, QueryRequest request, VXQuery cli) {
         URI uri = null;
         try {
             uri = RestUtils.buildQueryURI(request, cli.restIpAddress, cli.restPort);
@@ -262,7 +262,7 @@ public class VXQueryCLI {
         }
     }
 
-    private static void sendQueryResultRequest(String xqFile, QueryResultRequest request, VXQueryCLI cli) {
+    private static void sendQueryResultRequest(String xqFile, QueryResultRequest request, VXQuery cli) {
         URI uri = null;
         try {
             uri = RestUtils.buildQueryResultURI(request, cli.restIpAddress, cli.restPort);
@@ -302,7 +302,7 @@ public class VXQueryCLI {
 
 
     private static QueryRequest createQueryRequest(CmdLineOptions opts, String query) {
-        QueryRequest request = new QueryRequest(null, query);
+        QueryRequest request = new QueryRequest(query);
         request.setCompileOnly(opts.compileOnly);
         request.setOptimization(opts.optimizationLevel);
         request.setFrameSize(opts.frameSize);

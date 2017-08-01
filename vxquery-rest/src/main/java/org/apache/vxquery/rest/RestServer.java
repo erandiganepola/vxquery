@@ -27,8 +27,8 @@ import org.apache.vxquery.rest.servlet.QueryResultAPIServlet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
-import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
+import static org.apache.vxquery.core.Constants.URLs.QUERY_ENDPOINT;
+import static org.apache.vxquery.core.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
 /**
  * REST Server class responsible for starting a new server on a given port.

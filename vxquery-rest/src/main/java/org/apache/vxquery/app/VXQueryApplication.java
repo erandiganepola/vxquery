@@ -20,10 +20,10 @@ package org.apache.vxquery.app;
 import org.apache.hyracks.api.application.ICCApplicationContext;
 import org.apache.hyracks.api.application.ICCApplicationEntryPoint;
 import org.apache.hyracks.api.client.ClusterControllerInfo;
-import org.apache.vxquery.rest.RestServer;
 import org.apache.vxquery.core.VXQuery;
 import org.apache.vxquery.core.VXQueryConfig;
 import org.apache.vxquery.exceptions.VXQueryRuntimeException;
+import org.apache.vxquery.rest.RestServer;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
@@ -32,6 +32,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static org.apache.vxquery.core.Constants.Properties.AVAILABLE_PROCESSORS;
+import static org.apache.vxquery.core.Constants.Properties.HDFS_CONFIG;
+import static org.apache.vxquery.core.Constants.Properties.JOIN_HASH_SIZE;
+import static org.apache.vxquery.core.Constants.Properties.MAXIMUM_DATA_SIZE;
 
 /**
  * Main class responsible for starting the {@link RestServer} and {@link VXQuery} classes.
@@ -91,8 +96,17 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
         }
     }
 
+    /**
+     * Loads properties from <pre>-appConfig foo/bar.properties</pre> file if specified in the app arguments.
+     *
+     * @param clusterControllerInfo cluster controller information
+     * @param propertiesFile        vxquery configuration properties file, given by <pre>-appConfig</pre> option in app
+     *                              argument
+     * @return A new {@link VXQueryConfig} instance with either default properties or properties loaded from the
+     * properties file given.
+     */
     private VXQueryConfig loadConfiguration(ClusterControllerInfo clusterControllerInfo, String propertiesFile) {
-        VXQueryConfig vxQueryConfig = new VXQueryConfig();
+        VXQueryConfig vxqConfig = new VXQueryConfig();
         if (propertiesFile != null) {
             try (InputStream in = new FileInputStream(propertiesFile)) {
                 System.getProperties().load(in);
@@ -101,11 +115,15 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
             }
         }
 
-        // TODO: 6/21/17 Load more properties
-        vxQueryConfig.setHyracksClientIp(clusterControllerInfo.getClientNetAddress());
-        vxQueryConfig.setHyracksClientPort(clusterControllerInfo.getClientNetPort());
+        vxqConfig.setAvailableProcessors(Integer.getInteger(AVAILABLE_PROCESSORS, 1));
+        vxqConfig.setJoinHashSize(Long.getLong(JOIN_HASH_SIZE, -1));
+        vxqConfig.setHdfsConf(System.getProperty(HDFS_CONFIG));
+        vxqConfig.setMaximumDataSize(Long.getLong(MAXIMUM_DATA_SIZE, -1));
 
-        return vxQueryConfig;
+        vxqConfig.setHyracksClientIp(clusterControllerInfo.getClientNetAddress());
+        vxqConfig.setHyracksClientPort(clusterControllerInfo.getClientNetPort());
+
+        return vxqConfig;
     }
 
     public VXQuery getVxQuery() {

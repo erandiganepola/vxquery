@@ -47,7 +47,6 @@ import org.apache.vxquery.context.DynamicContextImpl;
 import org.apache.vxquery.context.RootStaticContextImpl;
 import org.apache.vxquery.context.StaticContextImpl;
 import org.apache.vxquery.exceptions.SystemException;
-import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
@@ -74,9 +73,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.SEVERE;
-import static org.apache.vxquery.rest.Constants.ErrorCodes.NOT_FOUND;
-import static org.apache.vxquery.rest.Constants.ErrorCodes.PROBLEM_WITH_QUERY;
-import static org.apache.vxquery.rest.Constants.ErrorCodes.UNFORSEEN_PROBLEM;
+import static org.apache.vxquery.core.Constants.ErrorCodes.NOT_FOUND;
+import static org.apache.vxquery.core.Constants.ErrorCodes.PROBLEM_WITH_QUERY;
+import static org.apache.vxquery.core.Constants.ErrorCodes.UNFORSEEN_PROBLEM;
 
 /**
  * Main class responsible for handling query requests. This class will first compile, then submit query to hyracks and

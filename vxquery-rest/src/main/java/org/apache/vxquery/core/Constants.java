@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest;
+package org.apache.vxquery.core;
 
 public class Constants {
 
@@ -44,12 +44,11 @@ public class Constants {
     }
 
     public class Properties {
-        public static final String VXQUERY_PROPERTIES_FILE = "vxquery.properties";
-
-        public static final String REST_SERVER_PORT = "vxquery.rest.server.port";
-
-        public static final String HYRACKS_CLIENT_IP = "vxquery.hyracks.client_ip";
-        public static final String HYRACKS_CLIENT_PORT = "vxquery.hyracks.client_port";
+        public static final String AVAILABLE_PROCESSORS = "org.apache.vxquery.available_processors";
+        public static final String LOCAL_NODE_CONTROLLERS = "org.apache.vxquery.local_nc";
+        public static final String JOIN_HASH_SIZE = "org.apache.vxquery.join_hash";
+        public static final String MAXIMUM_DATA_SIZE = "org.apache.vxquery.data_size";
+        public static final String HDFS_CONFIG = "org.apache.vxquery.hdfs_config";
     }
 
     public class HttpHeaderValues {

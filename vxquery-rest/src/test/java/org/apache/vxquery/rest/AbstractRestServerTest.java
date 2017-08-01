@@ -17,9 +17,6 @@
 
 package org.apache.vxquery.rest;
 
-import org.apache.htrace.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.utils.URIBuilder;
 import org.apache.hyracks.control.cc.ClusterControllerService;
 import org.apache.hyracks.control.common.controllers.CCConfig;
 import org.apache.hyracks.control.common.controllers.NCConfig;
@@ -27,36 +24,12 @@ import org.apache.hyracks.control.nc.NodeControllerService;
 import org.apache.vxquery.app.VXQueryApplication;
 import org.apache.vxquery.core.VXQuery;
 import org.apache.vxquery.core.VXQueryConfig;
-import org.apache.vxquery.rest.request.QueryRequest;
-import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.net.InetAddress;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.util.Arrays;
-
-import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
-import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
-import static org.apache.vxquery.rest.Constants.Parameters.METRICS;
-import static org.apache.vxquery.rest.Constants.Parameters.REPEAT_EXECUTIONS;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_AST;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_OET;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_RP;
-import static org.apache.vxquery.rest.Constants.Parameters.SHOW_TET;
-import static org.apache.vxquery.rest.Constants.Parameters.STATEMENT;
-import static org.apache.vxquery.rest.Constants.URLs.QUERY_ENDPOINT;
-import static org.apache.vxquery.rest.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
 /**
  * Abstract test class to be used for {@link VXQueryApplication} related tests. These tests are expected to use the REST

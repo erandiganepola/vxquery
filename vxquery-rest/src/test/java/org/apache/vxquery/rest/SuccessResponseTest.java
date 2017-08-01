@@ -26,6 +26,7 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.app.util.RestUtils;
+import org.apache.vxquery.core.Constants;
 import org.apache.vxquery.core.Status;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
@@ -37,8 +38,8 @@ import org.junit.Test;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
-import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
+import static org.apache.vxquery.core.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
+import static org.apache.vxquery.core.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
 
 /**
  * This class tests the success responses received for XQueries submitted. i.e we are submitting correct queries which
@@ -51,7 +52,7 @@ public class SuccessResponseTest extends AbstractRestServerTest {
 
     @Test
     public void testSimpleQuery001() throws Exception {
-        QueryRequest request = new QueryRequest(null, "1+1");
+        QueryRequest request = new QueryRequest("1+1");
         request.setShowAbstractSyntaxTree(true);
         request.setShowOptimizedExpressionTree(true);
         request.setShowRuntimePlan(true);
@@ -64,7 +65,7 @@ public class SuccessResponseTest extends AbstractRestServerTest {
 
     @Test
     public void testSimpleQuery002() throws Exception {
-        QueryRequest request = new QueryRequest(null, "for $x in (1, 2.0, 3) return $x");
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
         request.setShowAbstractSyntaxTree(true);
         request.setShowOptimizedExpressionTree(true);
         request.setShowRuntimePlan(true);
@@ -140,7 +141,7 @@ public class SuccessResponseTest extends AbstractRestServerTest {
         /*
          * ========== Query Result Response Testing ========
          */
-        QueryResultRequest resultRequest = new QueryResultRequest(actualQueryResponse.getResultId(), null);
+        QueryResultRequest resultRequest = new QueryResultRequest(actualQueryResponse.getResultId());
         resultRequest.setShowMetrics(true);
 
         QueryResultResponse expectedResultResponse = (QueryResultResponse) vxQuery.getResult(resultRequest);

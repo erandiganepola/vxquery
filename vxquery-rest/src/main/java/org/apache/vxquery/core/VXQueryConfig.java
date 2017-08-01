@@ -30,14 +30,10 @@ public class VXQueryConfig {
 
     /** Number of available processors. (default: java's available processors) */
     private int availableProcessors = -1;
-    /** Number of local node controllers. (default: 1) */
-    private int localNodeControllers = 1;
     /** Join hash size in bytes. (default: 67,108,864) */
     private long joinHashSize = -1;
     /** Maximum possible data size in bytes. (default: 150,323,855,000) */
     private long maximumDataSize = -1;
-    /** Bind an external variable */
-    private Map<String, String> bindings = new HashMap<>();
     /** Directory path to Hadoop configuration files */
     private String hdfsConf = null;
 
@@ -50,14 +46,6 @@ public class VXQueryConfig {
 
     public void setAvailableProcessors(int availableProcessors) {
         this.availableProcessors = availableProcessors;
-    }
-
-    public int getLocalNodeControllers() {
-        return localNodeControllers;
-    }
-
-    public void setLocalNodeControllers(int localNodeControllers) {
-        this.localNodeControllers = localNodeControllers;
     }
 
     public long getJoinHashSize() {
@@ -74,14 +62,6 @@ public class VXQueryConfig {
 
     public void setMaximumDataSize(long maximumDataSize) {
         this.maximumDataSize = maximumDataSize;
-    }
-
-    public Map<String, String> getBindings() {
-        return bindings;
-    }
-
-    public void setBindings(Map<String, String> bindings) {
-        this.bindings = bindings;
     }
 
     public String getHdfsConf() {

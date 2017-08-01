@@ -154,10 +154,6 @@
             <groupId>org.apache.hyracks</groupId>
             <artifactId>hyracks-control-nc</artifactId>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-        </dependency>
     </dependencies>
 
     <reporting>

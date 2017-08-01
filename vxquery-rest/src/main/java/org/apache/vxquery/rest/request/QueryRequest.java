@@ -25,6 +25,10 @@ import org.apache.vxquery.rest.RestServer;
  */
 public class QueryRequest {
 
+    public QueryRequest(String statement) {
+        this(null, statement);
+    }
+
     public QueryRequest(String requestId, String statement) {
         if (statement == null) {
             throw new IllegalArgumentException("Statement cannot be null");

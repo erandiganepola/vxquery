@@ -48,7 +48,7 @@
                         <configuration>
                             <programs>
                                 <program>
-                                    <mainClass>org.apache.vxquery.cli.VXQueryCLI</mainClass>
+                                    <mainClass>org.apache.vxquery.cli.VXQuery</mainClass>
                                     <name>vxq</name>
                                 </program>
                             </programs>

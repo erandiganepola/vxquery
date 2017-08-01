@@ -30,6 +30,10 @@ public class QueryResultRequest {
     private boolean showMetrics = false;
     private String requestId;
 
+    public QueryResultRequest(long resultId) {
+        this(resultId, null);
+    }
+
     public QueryResultRequest(long resultId, String requestId) {
         this.resultId = resultId;
         this.requestId = requestId;
