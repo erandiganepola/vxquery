@@ -15,13 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.core;
-
-import java.util.HashMap;
-import java.util.Map;
+package org.apache.vxquery.rest.service;
 
 /**
- * A class to store default/user specified configurations required at runtime by the {@link VXQuery} class. These
+ * A class to store default/user specified configurations required at runtime by the {@link VXQueryService} class. These
  * configuration will be loaded through a properties file.
  *
  * @author Erandi Ganepola
@@ -29,7 +26,9 @@ import java.util.Map;
 public class VXQueryConfig {
 
     /** Number of available processors. (default: java's available processors) */
-    private int availableProcessors = -1;
+    private int availableProcessors = Runtime.getRuntime().availableProcessors();
+    /** Setting frame size. (default: 65,536) */
+    private int frameSize = 65536;
     /** Join hash size in bytes. (default: 67,108,864) */
     private long joinHashSize = -1;
     /** Maximum possible data size in bytes. (default: 150,323,855,000) */
@@ -86,5 +85,13 @@ public class VXQueryConfig {
 
     public void setHyracksClientIp(String hyracksClientIp) {
         this.hyracksClientIp = hyracksClientIp;
+    }
+
+    public int getFrameSize() {
+        return frameSize;
+    }
+
+    public void setFrameSize(int frameSize) {
+        this.frameSize = frameSize;
     }
 }

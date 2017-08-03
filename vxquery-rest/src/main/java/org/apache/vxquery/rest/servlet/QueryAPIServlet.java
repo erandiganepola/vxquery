@@ -17,8 +17,8 @@
 package org.apache.vxquery.rest.servlet;
 
 import org.apache.hyracks.http.api.IServletRequest;
-import org.apache.vxquery.core.Constants;
-import org.apache.vxquery.core.VXQuery;
+import org.apache.vxquery.rest.service.Constants;
+import org.apache.vxquery.rest.service.VXQueryService;
 import org.apache.vxquery.exceptions.VXQueryServletRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.APIResponse;
@@ -35,11 +35,11 @@ import java.util.logging.Level;
  */
 public class QueryAPIServlet extends RestAPIServlet {
 
-    private VXQuery vxQuery;
+    private VXQueryService vxQueryService;
 
-    public QueryAPIServlet(VXQuery vxQuery, ConcurrentMap<String, Object> ctx, String... paths) {
+    public QueryAPIServlet(VXQueryService vxQueryService, ConcurrentMap<String, Object> ctx, String... paths) {
         super(ctx, paths);
-        this.vxQuery = vxQuery;
+        this.vxQueryService = vxQueryService;
     }
 
     @Override
@@ -57,7 +57,7 @@ public class QueryAPIServlet extends RestAPIServlet {
         }
 
         try {
-            return vxQuery.execute(queryRequest);
+            return vxQueryService.execute(queryRequest);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when trying to execute query : " + queryRequest.getStatement(), e);
             throw new VXQueryServletRuntimeException("Unable to execute the query given", e);

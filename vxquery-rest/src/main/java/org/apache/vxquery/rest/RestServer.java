@@ -19,7 +19,7 @@ package org.apache.vxquery.rest;
 
 import org.apache.hyracks.http.server.HttpServer;
 import org.apache.hyracks.http.server.WebManager;
-import org.apache.vxquery.core.VXQuery;
+import org.apache.vxquery.rest.service.VXQueryService;
 import org.apache.vxquery.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.servlet.QueryAPIServlet;
 import org.apache.vxquery.rest.servlet.QueryResultAPIServlet;
@@ -27,8 +27,8 @@ import org.apache.vxquery.rest.servlet.QueryResultAPIServlet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.apache.vxquery.core.Constants.URLs.QUERY_ENDPOINT;
-import static org.apache.vxquery.core.Constants.URLs.QUERY_RESULT_ENDPOINT;
+import static org.apache.vxquery.rest.service.Constants.URLs.QUERY_ENDPOINT;
+import static org.apache.vxquery.rest.service.Constants.URLs.QUERY_RESULT_ENDPOINT;
 
 /**
  * REST Server class responsible for starting a new server on a given port.
@@ -42,7 +42,7 @@ public class RestServer {
     private WebManager webManager;
     private int port;
 
-    public RestServer(VXQuery vxQuery, int port) {
+    public RestServer(VXQueryService vxQueryService, int port) {
         if (port == 0) {
             throw new IllegalArgumentException("REST Server port cannot be 0");
         }
@@ -51,8 +51,8 @@ public class RestServer {
 
         webManager = new WebManager();
         HttpServer restServer = new HttpServer(webManager.getBosses(), webManager.getWorkers(), this.port);
-        restServer.addServlet(new QueryAPIServlet(vxQuery, restServer.ctx(), QUERY_ENDPOINT));
-        restServer.addServlet(new QueryResultAPIServlet(vxQuery, restServer.ctx(), QUERY_RESULT_ENDPOINT));
+        restServer.addServlet(new QueryAPIServlet(vxQueryService, restServer.ctx(), QUERY_ENDPOINT));
+        restServer.addServlet(new QueryResultAPIServlet(vxQueryService, restServer.ctx(), QUERY_RESULT_ENDPOINT));
         webManager.add(restServer);
     }
 
@@ -72,7 +72,7 @@ public class RestServer {
             LOGGER.log(Level.FINE, "Stopping rest server");
             webManager.stop();
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error occurred when stopping VXQuery", e);
+            LOGGER.log(Level.SEVERE, "Error occurred when stopping VXQueryService", e);
             throw new VXQueryRuntimeException("Error occurred when stopping rest server", e);
         }
         LOGGER.log(Level.INFO, "Rest server stopped");

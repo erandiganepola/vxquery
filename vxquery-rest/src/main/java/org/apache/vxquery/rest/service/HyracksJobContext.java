@@ -15,25 +15,38 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.core;
+package org.apache.vxquery.rest.service;
+
+import org.apache.hyracks.api.dataset.ResultSetId;
+import org.apache.hyracks.api.job.JobId;
 
 /**
- * There can only 2 states for a response from the {@link org.apache.vxquery.rest.RestServer}. They are,
- * <pre>SUCCESS</pre> and <pre>FATAL</pre>. This enum represents those two types.
+ * A class to map {@link ResultSetId} with {@link JobId} when a job is submitted to hyracks. This mapping will later be
+ * used to determine the {@link JobId} instance of the corresponding {@link ResultSetId}
  *
  * @author Erandi Ganepola
  */
-public enum Status {
-    SUCCESS("success"),
-    FATAL("fatal");
+public class HyracksJobContext {
 
-    private final String name;
+    private JobId jobId;
+    private int frameSize;
+    private ResultSetId resultSetId;
 
-    Status(String name) {
-        this.name = name;
+    public HyracksJobContext(JobId jobId, int frameSize, ResultSetId resultSetId) {
+        this.jobId = jobId;
+        this.frameSize = frameSize;
+        this.resultSetId = resultSetId;
     }
 
-    public String toString() {
-        return name;
+    public JobId getJobId() {
+        return jobId;
+    }
+
+    public int getFrameSize() {
+        return frameSize;
+    }
+
+    public ResultSetId getResultSetId() {
+        return resultSetId;
     }
 }

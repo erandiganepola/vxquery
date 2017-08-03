@@ -15,35 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.response;
+package org.apache.vxquery.rest.service;
 
-import org.apache.vxquery.rest.service.Status;
-
-import javax.xml.bind.annotation.XmlRootElement;
-
-@XmlRootElement
-public class QueryResultResponse extends APIResponse {
-
-    private String results;
-    private Metrics metrics = new Metrics();
-
-    public QueryResultResponse() {
-        super(Status.SUCCESS.toString());
-    }
-
-    public String getResults() {
-        return results;
-    }
-
-    public void setResults(String results) {
-        this.results = results;
-    }
-
-    public Metrics getMetrics() {
-        return metrics;
-    }
-
-    public void setMetrics(Metrics metrics) {
-        this.metrics = metrics;
-    }
+/**
+ * An enum to represent states of {@link VXQueryService} class
+ *
+ * @author Erandi Ganepola
+ */
+public enum State {
+    STARTING,
+    STARTED,
+    STOPPING,
+    STOPPED
 }

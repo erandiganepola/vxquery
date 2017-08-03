@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.vxquery.core;
+package org.apache.vxquery.rest.service;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.DomDriver;
@@ -73,9 +73,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.SEVERE;
-import static org.apache.vxquery.core.Constants.ErrorCodes.NOT_FOUND;
-import static org.apache.vxquery.core.Constants.ErrorCodes.PROBLEM_WITH_QUERY;
-import static org.apache.vxquery.core.Constants.ErrorCodes.UNFORSEEN_PROBLEM;
+import static org.apache.vxquery.rest.service.Constants.ErrorCodes.NOT_FOUND;
+import static org.apache.vxquery.rest.service.Constants.ErrorCodes.PROBLEM_WITH_QUERY;
+import static org.apache.vxquery.rest.service.Constants.ErrorCodes.UNFORSEEN_PROBLEM;
 
 /**
  * Main class responsible for handling query requests. This class will first compile, then submit query to hyracks and
@@ -83,9 +83,9 @@ import static org.apache.vxquery.core.Constants.ErrorCodes.UNFORSEEN_PROBLEM;
  *
  * @author Erandi Ganepola
  */
-public class VXQuery {
+public class VXQueryService {
 
-    public static final Logger LOGGER = Logger.getLogger(VXQuery.class.getName());
+    public static final Logger LOGGER = Logger.getLogger(VXQueryService.class.getName());
 
     private volatile State state = State.STOPPED;
     private VXQueryConfig vxQueryConfig;
@@ -96,17 +96,17 @@ public class VXQuery {
     private IHyracksClientConnection hyracksClientConnection;
     private HyracksDataset hyracksDataset;
 
-    public VXQuery(VXQueryConfig config) {
+    public VXQueryService(VXQueryConfig config) {
         vxQueryConfig = config;
     }
 
     /**
-     * Starts VXQuery class by creating a {@link IHyracksClientConnection} which will later be used to submit and
+     * Starts VXQueryService class by creating a {@link IHyracksClientConnection} which will later be used to submit and
      * retrieve queries and results to/from hyracks.
      */
     public synchronized void start() {
         if (!State.STOPPED.equals(state)) {
-            throw new IllegalStateException("VXQuery is at state : " + state);
+            throw new IllegalStateException("VXQueryService is at state : " + state);
         }
 
         if (vxQueryConfig.getHyracksClientIp() == null) {
@@ -125,7 +125,7 @@ public class VXQuery {
         LOGGER.log(Level.FINE, String.format("Using hyracks connection to %s:%d", vxQueryConfig.getHyracksClientIp(), vxQueryConfig.getHyracksClientPort()));
 
         setState(State.STARTED);
-        LOGGER.log(Level.INFO, "VXQuery started successfully");
+        LOGGER.log(Level.INFO, "VXQueryService started successfully");
     }
 
     private synchronized void setState(State newState) {
@@ -142,7 +142,7 @@ public class VXQuery {
      */
     public APIResponse execute(final QueryRequest request) {
         if (!State.STARTED.equals(state)) {
-            throw new IllegalStateException("VXQuery is at state : " + state);
+            throw new IllegalStateException("VXQueryService is at state : " + state);
         }
 
         QueryResponse response = APIResponse.newQueryResponse(request.getRequestId());
@@ -308,11 +308,11 @@ public class VXQuery {
     public synchronized void stop() {
         if (!State.STOPPED.equals(state)) {
             setState(State.STOPPING);
-            LOGGER.log(Level.FINE, "Stooping VXQuery");
+            LOGGER.log(Level.FINE, "Stooping VXQueryService");
             setState(State.STOPPED);
-            LOGGER.log(Level.INFO, "VXQuery stopped successfully");
+            LOGGER.log(Level.INFO, "VXQueryService stopped successfully");
         } else {
-            LOGGER.log(Level.INFO, "VXQuery is already in state : " + state);
+            LOGGER.log(Level.INFO, "VXQueryService is already in state : " + state);
         }
     }
 

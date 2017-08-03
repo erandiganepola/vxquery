@@ -17,19 +17,12 @@
 
 package org.apache.vxquery.rest;
 
-import org.apache.hyracks.control.cc.ClusterControllerService;
-import org.apache.hyracks.control.common.controllers.CCConfig;
-import org.apache.hyracks.control.common.controllers.NCConfig;
-import org.apache.hyracks.control.nc.NodeControllerService;
 import org.apache.vxquery.app.VXQueryApplication;
-import org.apache.vxquery.core.VXQuery;
-import org.apache.vxquery.core.VXQueryConfig;
+import org.apache.vxquery.app.util.LocalClusterUtil;
+import org.apache.vxquery.rest.service.VXQueryConfig;
+import org.apache.vxquery.rest.service.VXQueryService;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-
-import java.net.InetAddress;
-import java.nio.file.Files;
-import java.util.Arrays;
 
 /**
  * Abstract test class to be used for {@link VXQueryApplication} related tests. These tests are expected to use the REST
@@ -39,71 +32,21 @@ import java.util.Arrays;
  */
 public class AbstractRestServerTest {
 
-    protected static final int restPort = 8085;
-
-    private static ClusterControllerService clusterControllerService;
-    private static NodeControllerService nodeControllerService;
-
-    protected static VXQuery vxQuery;
+    protected static LocalClusterUtil vxqueryLocalCluster = new LocalClusterUtil();
+    protected static String restIpAddress;
+    protected static int restPort;
+    protected static VXQueryService vxQueryService;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        startLocalHyracks();
-
-        CCConfig ccConfig = clusterControllerService.getCCConfig();
-        VXQueryConfig config = new VXQueryConfig();
-        config.setHyracksClientIp(ccConfig.clientNetIpAddress);
-        config.setHyracksClientPort(ccConfig.clientNetPort);
-        vxQuery = new VXQuery(config);
-        vxQuery.start();
-    }
-
-    /**
-     * Start local virtual cluster with cluster controller node and node controller nodes. IP address provided for node
-     * controller is localhost. Unassigned ports 39000 and 39001 are used for client and cluster port respectively.
-     *
-     * @throws Exception
-     */
-    private static void startLocalHyracks() throws Exception {
-        String localAddress = InetAddress.getLocalHost().getHostAddress();
-        CCConfig ccConfig = new CCConfig();
-        ccConfig.clientNetIpAddress = localAddress;
-        ccConfig.clientNetPort = 39000;
-        ccConfig.clusterNetIpAddress = localAddress;
-        ccConfig.clusterNetPort = 39001;
-        ccConfig.httpPort = 39002;
-        ccConfig.profileDumpPeriod = 10000;
-        ccConfig.appCCMainClass = VXQueryApplication.class.getName();
-        ccConfig.appArgs = Arrays.asList("-restPort", String.valueOf(restPort));
-        clusterControllerService = new ClusterControllerService(ccConfig);
-        clusterControllerService.start();
-
-        NCConfig ncConfig = new NCConfig();
-        ncConfig.ccHost = "localhost";
-        ncConfig.ccPort = 39001;
-        ncConfig.clusterNetIPAddress = localAddress;
-        ncConfig.dataIPAddress = localAddress;
-        ncConfig.resultIPAddress = localAddress;
-        ncConfig.nodeId = "nc";
-        ncConfig.ioDevices = Files.createTempDirectory(ncConfig.nodeId).toString();
-        nodeControllerService = new NodeControllerService(ncConfig);
-        nodeControllerService.start();
-    }
-
-
-    /**
-     * Shuts down the virtual cluster, along with all nodes and node execution, network and queue managers.
-     *
-     * @throws Exception
-     */
-    private static void stopLocalHyracks() throws Exception {
-        nodeControllerService.stop();
-        clusterControllerService.stop();
+        vxqueryLocalCluster.init(new VXQueryConfig());
+        vxQueryService = vxqueryLocalCluster.getVxQueryService();
+        restIpAddress = vxqueryLocalCluster.getIpAddress();
+        restPort = vxqueryLocalCluster.getRestPort();
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        vxQuery.stop();
-        stopLocalHyracks();
+        vxqueryLocalCluster.deinit();
     }
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.core;
+package org.apache.vxquery.rest.service;
 
 public class Constants {
 

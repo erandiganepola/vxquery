@@ -26,20 +26,20 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.app.util.RestUtils;
-import org.apache.vxquery.core.Constants;
-import org.apache.vxquery.core.Status;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
+import org.apache.vxquery.rest.service.Constants;
+import org.apache.vxquery.rest.service.Status;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.vxquery.core.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
-import static org.apache.vxquery.core.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
+import static org.apache.vxquery.rest.service.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
+import static org.apache.vxquery.rest.service.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
 
 /**
  * This class tests the success responses received for XQueries submitted. i.e we are submitting correct queries which
@@ -76,14 +76,40 @@ public class SuccessResponseTest extends AbstractRestServerTest {
         runTest(CONTENT_TYPE_XML, request);
     }
 
+    @Test
+    public void testSimpleQuery003() throws Exception {
+        QueryRequest request = new QueryRequest("1+2+3");
+        request.setShowAbstractSyntaxTree(false);
+        request.setShowOptimizedExpressionTree(false);
+        request.setShowRuntimePlan(false);
+        request.setShowTranslatedExpressionTree(false);
+        request.setShowMetrics(false);
+
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSimpleQuery004() throws Exception {
+        QueryRequest request = new QueryRequest("fn:true()");
+        request.setShowAbstractSyntaxTree(false);
+        request.setShowOptimizedExpressionTree(false);
+        request.setShowRuntimePlan(true);
+        request.setShowTranslatedExpressionTree(false);
+        request.setShowMetrics(false);
+
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
     private void runTest(String contentType, QueryRequest request) throws Exception {
-        URI queryEndpointUri = RestUtils.buildQueryURI(request, "localhost", restPort);
+        URI queryEndpointUri = RestUtils.buildQueryURI(request, restIpAddress, restPort);
 
         /*
          * ========== Query Response Testing ==========
          */
-        // Testing the accuracy of VXQuery class
-        QueryResponse expectedQueryResponse = (QueryResponse) vxQuery.execute(request);
+        // Testing the accuracy of VXQueryService class
+        QueryResponse expectedQueryResponse = (QueryResponse) vxQueryService.execute(request);
 
         Assert.assertTrue(expectedQueryResponse.getResultUrl().startsWith(Constants.RESULT_URL_PREFIX));
         Assert.assertEquals(Status.SUCCESS.toString(), expectedQueryResponse.getStatus());
@@ -133,7 +159,12 @@ public class SuccessResponseTest extends AbstractRestServerTest {
 
         // Cannot check this because Runtime plan include some object IDs which differ
         // Assert.assertEquals(expectedQueryResponse.getRuntimePlan(), actualQueryResponse.getRuntimePlan());
-        Assert.assertNotNull(actualQueryResponse.getRuntimePlan());
+        if (request.isShowRuntimePlan()) {
+            Assert.assertNotNull(actualQueryResponse.getRuntimePlan());
+        } else {
+            Assert.assertNull(actualQueryResponse.getRuntimePlan());
+        }
+
         Assert.assertEquals(normalize(expectedQueryResponse.getOptimizedExpressionTree()), normalize(actualQueryResponse.getOptimizedExpressionTree()));
         Assert.assertEquals(normalize(expectedQueryResponse.getTranslatedExpressionTree()), normalize(actualQueryResponse.getTranslatedExpressionTree()));
         Assert.assertEquals(normalize(expectedQueryResponse.getAbstractSyntaxTree()), normalize(actualQueryResponse.getAbstractSyntaxTree()));
@@ -144,7 +175,7 @@ public class SuccessResponseTest extends AbstractRestServerTest {
         QueryResultRequest resultRequest = new QueryResultRequest(actualQueryResponse.getResultId());
         resultRequest.setShowMetrics(true);
 
-        QueryResultResponse expectedResultResponse = (QueryResultResponse) vxQuery.getResult(resultRequest);
+        QueryResultResponse expectedResultResponse = (QueryResultResponse) vxQueryService.getResult(resultRequest);
         Assert.assertEquals(expectedResultResponse.getStatus(), Status.SUCCESS.toString());
         Assert.assertNotNull(expectedResultResponse.getResults());
 
@@ -172,6 +203,10 @@ public class SuccessResponseTest extends AbstractRestServerTest {
     }
 
     private static String normalize(String string) {
+        if (string == null) {
+            return null;
+        }
+
         return string.replace("\r\n", "").replace("\n", "").replace("\r", "");
     }
 
@@ -217,7 +252,7 @@ public class SuccessResponseTest extends AbstractRestServerTest {
      * @throws Exception
      */
     private static QueryResultResponse getQueryResultResponse(QueryResultRequest resultRequest, String accepts) throws Exception {
-        URI queryResultEndpointUri = RestUtils.buildQueryResultURI(resultRequest, "localhost", restPort);
+        URI queryResultEndpointUri = RestUtils.buildQueryResultURI(resultRequest, restIpAddress, restPort);
 
         CloseableHttpClient httpClient = HttpClients.custom()
                                                  .setConnectionTimeToLive(20, TimeUnit.SECONDS)

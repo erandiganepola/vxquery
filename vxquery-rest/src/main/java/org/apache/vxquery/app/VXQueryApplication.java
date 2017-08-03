@@ -20,8 +20,8 @@ package org.apache.vxquery.app;
 import org.apache.hyracks.api.application.ICCApplicationContext;
 import org.apache.hyracks.api.application.ICCApplicationEntryPoint;
 import org.apache.hyracks.api.client.ClusterControllerInfo;
-import org.apache.vxquery.core.VXQuery;
-import org.apache.vxquery.core.VXQueryConfig;
+import org.apache.vxquery.rest.service.VXQueryService;
+import org.apache.vxquery.rest.service.VXQueryConfig;
 import org.apache.vxquery.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.RestServer;
 import org.kohsuke.args4j.CmdLineParser;
@@ -33,13 +33,13 @@ import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.apache.vxquery.core.Constants.Properties.AVAILABLE_PROCESSORS;
-import static org.apache.vxquery.core.Constants.Properties.HDFS_CONFIG;
-import static org.apache.vxquery.core.Constants.Properties.JOIN_HASH_SIZE;
-import static org.apache.vxquery.core.Constants.Properties.MAXIMUM_DATA_SIZE;
+import static org.apache.vxquery.rest.service.Constants.Properties.AVAILABLE_PROCESSORS;
+import static org.apache.vxquery.rest.service.Constants.Properties.HDFS_CONFIG;
+import static org.apache.vxquery.rest.service.Constants.Properties.JOIN_HASH_SIZE;
+import static org.apache.vxquery.rest.service.Constants.Properties.MAXIMUM_DATA_SIZE;
 
 /**
- * Main class responsible for starting the {@link RestServer} and {@link VXQuery} classes.
+ * Main class responsible for starting the {@link RestServer} and {@link VXQueryService} classes.
  *
  * @author Erandi Ganepola
  */
@@ -47,7 +47,7 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
 
     private static final Logger LOGGER = Logger.getLogger(VXQueryApplication.class.getName());
 
-    private VXQuery vxQuery;
+    private VXQueryService vxQueryService;
     private RestServer restServer;
 
     @Override
@@ -64,8 +64,8 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
         }
 
         VXQueryConfig config = loadConfiguration(ccAppCtx.getCCContext().getClusterControllerInfo(), appArgs.getVxqueryConfig());
-        vxQuery = new VXQuery(config);
-        restServer = new RestServer(vxQuery, appArgs.getRestPort());
+        vxQueryService = new VXQueryService(config);
+        restServer = new RestServer(vxQueryService, appArgs.getRestPort());
     }
 
     public synchronized void stop() {
@@ -73,8 +73,8 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
             LOGGER.log(Level.INFO, "Stopping REST server");
             restServer.stop();
 
-            LOGGER.log(Level.INFO, "Stopping VXQuery");
-            vxQuery.stop();
+            LOGGER.log(Level.INFO, "Stopping VXQueryService");
+            vxQueryService.stop();
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when stopping the application", e);
         }
@@ -83,9 +83,9 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
     @Override
     public void startupCompleted() throws Exception {
         try {
-            LOGGER.log(Level.INFO, "Starting VXQuery");
-            vxQuery.start();
-            LOGGER.log(Level.INFO, "VXQuery started successfully");
+            LOGGER.log(Level.INFO, "Starting VXQueryService");
+            vxQueryService.start();
+            LOGGER.log(Level.INFO, "VXQueryService started successfully");
 
             LOGGER.log(Level.INFO, "Starting REST server");
             restServer.start();
@@ -126,8 +126,8 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
         return vxqConfig;
     }
 
-    public VXQuery getVxQuery() {
-        return vxQuery;
+    public VXQueryService getVxQueryService() {
+        return vxQueryService;
     }
 
     public RestServer getRestServer() {
@@ -141,7 +141,7 @@ public class VXQueryApplication implements ICCApplicationEntryPoint {
         @Option(name = "-restPort", usage = "The port on which REST server starts")
         private int restPort = 8080;
 
-        @Option(name = "-appConfig", usage = "Properties file location which includes VXQuery Application additional configuration")
+        @Option(name = "-appConfig", usage = "Properties file location which includes VXQueryService Application additional configuration")
         private String vxqueryConfig = null;
 
         public String getVxqueryConfig() {

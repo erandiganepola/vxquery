@@ -17,7 +17,7 @@
 
 package org.apache.vxquery.rest.response;
 
-import org.apache.vxquery.core.Status;
+import org.apache.vxquery.rest.service.Status;
 
 import javax.xml.bind.annotation.XmlRootElement;
 

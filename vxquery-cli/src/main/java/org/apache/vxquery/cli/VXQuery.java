@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
-import static org.apache.vxquery.core.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
+import static org.apache.vxquery.rest.service.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 
 
 public class VXQuery {
@@ -183,7 +183,6 @@ public class VXQuery {
             printField("Runtime Plan", response.getRuntimePlan());
         }
 
-//        System.out.println(String.format("Reading results for '%s', result ID: %d", xqFile, response.getResultId()));
         QueryResultRequest resultRequest = new QueryResultRequest(response.getResultId(), response.getRequestId());
         resultRequest.setShowMetrics(opts.timing);
         sendQueryResultRequest(xqFile, resultRequest, this);
@@ -205,13 +204,11 @@ public class VXQuery {
         }
 
         System.err.println();
-        System.err.println("====================================================");
-        System.err.println("\t'" + xqFile + "' Errors");
-        System.err.println("====================================================");
+        System.err.println("------------------------ Errors ---------------------");
 
         Error error = response.getError();
         String errorMsg = String.format("Code:\t %d\nMessage:\t %s", error.getCode(), error.getMessage());
-        printField(System.err, String.format("Unable to execute query in '%s'", xqFile), errorMsg);
+        printField(System.err, String.format("Errors for '%s'", xqFile), errorMsg);
     }
 
 
@@ -371,16 +368,6 @@ public class VXQuery {
      */
     private static String slurp(String query) throws IOException {
         return FileUtils.readFileToString(new File(query), "UTF-8");
-    }
-
-    /**
-     * Save and print out the timing message.
-     *
-     * @param message
-     */
-    private static void timingMessage(String message) {
-        System.out.println(message);
-        timingMessages.add(message);
     }
 
     private static void printField(PrintStream out, String field, String value) {
