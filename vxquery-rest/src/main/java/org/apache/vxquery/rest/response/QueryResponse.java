@@ -14,22 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.vxquery.rest.response;
 
 import org.apache.vxquery.rest.service.Status;
 
-import javax.xml.bind.annotation.XmlRootElement;
-
-/**
- * Resource class to represent a response to a given user query
- *
- * @author Erandi Ganepola
- */
-@XmlRootElement
 public class QueryResponse extends APIResponse {
 
-    private long resultId;
-    private String resultUrl;
     private String statement;
     private String abstractSyntaxTree;
     private String translatedExpressionTree;
@@ -39,22 +30,6 @@ public class QueryResponse extends APIResponse {
 
     public QueryResponse() {
         super(Status.SUCCESS.toString());
-    }
-
-    public long getResultId() {
-        return resultId;
-    }
-
-    public void setResultId(long resultId) {
-        this.resultId = resultId;
-    }
-
-    public String getResultUrl() {
-        return resultUrl;
-    }
-
-    public void setResultUrl(String resultUrl) {
-        this.resultUrl = resultUrl;
     }
 
     public String getStatement() {

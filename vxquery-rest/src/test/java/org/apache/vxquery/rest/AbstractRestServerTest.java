@@ -19,9 +19,11 @@ package org.apache.vxquery.rest;
 
 import org.apache.vxquery.app.VXQueryApplication;
 import org.apache.vxquery.app.util.LocalClusterUtil;
+import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.service.VXQueryConfig;
 import org.apache.vxquery.rest.service.VXQueryService;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 
 /**
@@ -49,4 +51,23 @@ public class AbstractRestServerTest {
     public static void tearDown() throws Exception {
         vxqueryLocalCluster.deinit();
     }
+
+    protected static String normalize(String string) {
+        if (string == null) {
+            return null;
+        }
+
+        return string.replace("\r\n", "").replace("\n", "").replace("\r", "");
+    }
+
+    protected static void checkMetrics(QueryResponse response, boolean showMetrics) {
+        if (showMetrics) {
+            Assert.assertTrue(response.getMetrics().getCompileTime() > 0);
+            Assert.assertTrue(response.getMetrics().getElapsedTime() > 0);
+        } else {
+            Assert.assertTrue(response.getMetrics().getCompileTime() == 0);
+            Assert.assertTrue(response.getMetrics().getElapsedTime() == 0);
+        }
+    }
+
 }

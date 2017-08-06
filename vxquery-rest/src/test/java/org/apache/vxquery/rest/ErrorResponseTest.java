@@ -36,11 +36,11 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.vxquery.app.util.RestUtils.buildQueryResultURI;
 import static org.apache.vxquery.app.util.RestUtils.buildQueryURI;
-import static org.apache.vxquery.rest.service.Constants.ErrorCodes.INVALID_INPUT;
-import static org.apache.vxquery.rest.service.Constants.ErrorCodes.NOT_FOUND;
-import static org.apache.vxquery.rest.service.Constants.ErrorCodes.PROBLEM_WITH_QUERY;
-import static org.apache.vxquery.rest.service.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
-import static org.apache.vxquery.rest.service.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
+import static org.apache.vxquery.rest.Constants.ErrorCodes.INVALID_INPUT;
+import static org.apache.vxquery.rest.Constants.ErrorCodes.NOT_FOUND;
+import static org.apache.vxquery.rest.Constants.ErrorCodes.PROBLEM_WITH_QUERY;
+import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
+import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
 
 /**
  * Tests error codes of the possible error responses that can be received for erroneous queries.
@@ -96,6 +96,54 @@ public class ErrorResponseTest extends AbstractRestServerTest {
         QueryResultRequest request = new QueryResultRequest(1000);
         runTest(buildQueryResultURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, NOT_FOUND);
         runTest(buildQueryResultURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, NOT_FOUND);
+    }
+
+    @Test
+    public void testSyncInvalidInput01() throws Exception {
+        QueryRequest request = new QueryRequest("   ");
+        request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, INVALID_INPUT);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, INVALID_INPUT);
+    }
+
+    @Test
+    public void testSyncInvalidInput02() throws Exception {
+        QueryRequest request = new QueryRequest("");
+        request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, 405);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, 405);
+    }
+
+    @Test
+    public void testSyncInvalidQuery01() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1,2,3) return $y");
+        request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
+    }
+
+    @Test
+    public void testSyncInvalidQuery02() throws Exception {
+        QueryRequest request = new QueryRequest("for x in (1,2,3) return $x");
+        request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
+    }
+
+    @Test
+    public void testSyncInvalidQuery03() throws Exception {
+        QueryRequest request = new QueryRequest("insert nodes <book></book> into doc(\"abcd.xml\")/books");
+        request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
+    }
+
+    @Test
+    public void testSyncInvalidQuery04() throws Exception {
+        QueryRequest request = new QueryRequest("delete nodes /a/b//node()");
+        request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
+        runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
     }
 
     private void runTest(URI uri, String accepts, int expectedStatusCode) throws Exception {

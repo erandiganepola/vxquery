@@ -25,6 +25,21 @@ import org.apache.vxquery.rest.RestServer;
  */
 public class QueryRequest {
 
+    private String statement;
+    private boolean async = true;
+    private boolean compileOnly;
+    private int optimization = 0;
+    /** Frame size in bytes. (default: 65,536) */
+    private int frameSize = 65536;
+    private int repeatExecutions = 1;
+    private boolean showMetrics = false;
+    private boolean showAbstractSyntaxTree = false;
+    private boolean showTranslatedExpressionTree = false;
+    private boolean showOptimizedExpressionTree = false;
+    private boolean showRuntimePlan = false;
+    /** A unique UUID to uniquely identify a given request */
+    private String requestId;
+
     public QueryRequest(String statement) {
         this(null, statement);
     }
@@ -37,30 +52,6 @@ public class QueryRequest {
         this.statement = statement;
         this.requestId = requestId;
     }
-
-    private String statement;
-
-    private boolean compileOnly;
-
-    private int optimization = 0;
-
-    /** Frame size in bytes. (default: 65,536) */
-    private int frameSize = 65536;
-
-    private int repeatExecutions = 1;
-
-    private boolean showMetrics = false;
-
-    private boolean showAbstractSyntaxTree = false;
-
-    private boolean showTranslatedExpressionTree = false;
-
-    private boolean showOptimizedExpressionTree = false;
-
-    private boolean showRuntimePlan = false;
-
-    /** A unique UUID to uniquely identify a given request */
-    private String requestId;
 
     public String getStatement() {
         return statement;
@@ -144,5 +135,13 @@ public class QueryRequest {
 
     public String getRequestId() {
         return requestId;
+    }
+
+    public boolean isAsync() {
+        return async;
+    }
+
+    public void setAsync(boolean async) {
+        this.async = async;
     }
 }

@@ -54,6 +54,7 @@ import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.Error;
 import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
+import org.apache.vxquery.rest.response.SyncQueryResponse;
 import org.apache.vxquery.result.ResultUtils;
 import org.apache.vxquery.xmlquery.ast.ModuleNode;
 import org.apache.vxquery.xmlquery.query.Module;
@@ -73,9 +74,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.SEVERE;
-import static org.apache.vxquery.rest.service.Constants.ErrorCodes.NOT_FOUND;
-import static org.apache.vxquery.rest.service.Constants.ErrorCodes.PROBLEM_WITH_QUERY;
-import static org.apache.vxquery.rest.service.Constants.ErrorCodes.UNFORSEEN_PROBLEM;
+import static org.apache.vxquery.rest.Constants.ErrorCodes.NOT_FOUND;
+import static org.apache.vxquery.rest.Constants.ErrorCodes.PROBLEM_WITH_QUERY;
+import static org.apache.vxquery.rest.Constants.ErrorCodes.UNFORSEEN_PROBLEM;
 
 /**
  * Main class responsible for handling query requests. This class will first compile, then submit query to hyracks and
@@ -138,21 +139,18 @@ public class VXQueryService {
      *
      * @param request {@link QueryRequest} containing information about the query to be executed and the merics required
      *                along with the results
-     * @return QueryResponse if no error occurs | ErrorResponse else
+     * @return AsyncQueryResponse if no error occurs | ErrorResponse else
      */
     public APIResponse execute(final QueryRequest request) {
         if (!State.STARTED.equals(state)) {
             throw new IllegalStateException("VXQueryService is at state : " + state);
         }
 
-        QueryResponse response = APIResponse.newQueryResponse(request.getRequestId());
-
         String query = request.getStatement();
-        response.setStatement(query);
-
         final ResultSetId resultSetId = createResultSetId();
-        response.setResultId(resultSetId.getId());
-        response.setResultUrl(Constants.RESULT_URL_PREFIX + resultSetId.getId());
+
+        QueryResponse response = APIResponse.newQueryResponse(request, resultSetId);
+        response.setStatement(query);
 
         // Obtaining the node controller information from hyracks client connection
         Map<String, NodeControllerInfo> nodeControllerInfos = null;
@@ -199,27 +197,45 @@ public class VXQueryService {
             response.getMetrics().setCompileTime(new Date().getTime() - start.getTime());
         }
 
-        if (!request.isCompileOnly()) {
-            Module module = compiler.getModule();
-            JobSpecification js = module.getHyracksJobSpecification();
-            DynamicContext dCtx = new DynamicContextImpl(module.getModuleContext());
-            js.setGlobalJobDataFactory(new VXQueryGlobalDataFactory(dCtx.createFactory()));
+        if (request.isCompileOnly()) {
+            return response;
+        }
 
-            start = new Date();
+        Module module = compiler.getModule();
+        JobSpecification js = module.getHyracksJobSpecification();
+        DynamicContext dCtx = new DynamicContextImpl(module.getModuleContext());
+        js.setGlobalJobDataFactory(new VXQueryGlobalDataFactory(dCtx.createFactory()));
+
+        HyracksJobContext hyracksJobContext;
+        start = new Date();
+        try {
+            JobId jobId = hyracksClientConnection.startJob(js, EnumSet.of(JobFlag.PROFILE_RUNTIME));
+            hyracksJobContext = new HyracksJobContext(jobId, js.getFrameSize(), resultSetId);
+        } catch (Exception e) {
+            LOGGER.log(SEVERE, "Error occurred when submitting job to hyracks for query: " + query, e);
+            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(UNFORSEEN_PROBLEM)
+                                                                                .withMessage("Error occurred when starting hyracks job")
+                                                                                .build());
+        }
+
+        if (request.isAsync()) {
+            jobContexts.put(resultSetId.getId(), hyracksJobContext);
+        } else {
             try {
-                JobId jobId = hyracksClientConnection.startJob(js, EnumSet.of(JobFlag.PROFILE_RUNTIME));
-                jobContexts.put(resultSetId.getId(), new HyracksJobContext(jobId, js.getFrameSize(), resultSetId));
+                String results = readResults(hyracksJobContext);
+                ((SyncQueryResponse) response).setResults(results);
             } catch (Exception e) {
-                LOGGER.log(SEVERE, "Error occurred when submitting job to hyracks for query: " + query, e);
+                LOGGER.log(Level.SEVERE, "Error occurred when reading results", e);
                 return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(UNFORSEEN_PROBLEM)
-                                                                                    .withMessage("Error occurred when starting hyracks job")
+                                                                                    .withMessage("Error occurred when reading results")
                                                                                     .build());
             }
-
-            if (request.isShowMetrics()) {
-                response.getMetrics().setElapsedTime(new Date().getTime() - start.getTime());
-            }
         }
+
+        if (request.isShowMetrics()) {
+            response.getMetrics().setElapsedTime(new Date().getTime() - start.getTime());
+        }
+
         return response;
     }
 
@@ -237,7 +253,8 @@ public class VXQueryService {
             QueryResultResponse resultResponse = APIResponse.newQueryResultResponse(request.getRequestId());
             Date start = new Date();
             try {
-                readResults(jobContexts.get(request.getResultId()), resultResponse);
+                String results = readResults(jobContexts.get(request.getResultId()));
+                resultResponse.setResults(results);
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error occurred when reading results for id : " + request.getResultId());
                 return APIResponse.newErrorResponse(request.getRequestId(),
@@ -262,11 +279,11 @@ public class VXQueryService {
      * Reads results from hyracks given the {@link HyracksJobContext} containing {@link ResultSetId} and {@link JobId}
      * mapping.
      *
-     * @param jobContext     mapoing between the {@link ResultSetId} and corresponding hyracks {@link JobId}
-     * @param resultResponse {@link QueryResultResponse} object to which the result will be added.
+     * @param jobContext mapoing between the {@link ResultSetId} and corresponding hyracks {@link JobId}
+     * @return Results of the given query
      * @throws Exception IOErrors and etc
      */
-    private void readResults(HyracksJobContext jobContext, QueryResultResponse resultResponse) throws Exception {
+    private String readResults(HyracksJobContext jobContext) throws Exception {
         int nReaders = 1;
 
         if (hyracksDataset == null) {
@@ -288,10 +305,9 @@ public class VXQueryService {
             }
         }
 
-        // TODO: 7/12/17 Set metrics
         hyracksClientConnection.waitForCompletion(jobContext.getJobId());
         LOGGER.log(Level.INFO, String.format("Result for resultId %d completed", jobContext.getResultSetId().getId()));
-        resultResponse.setResults(resultStream.toString());
+        return resultStream.toString();
     }
 
     /**

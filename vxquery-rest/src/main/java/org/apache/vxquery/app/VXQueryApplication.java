@@ -33,10 +33,10 @@ import java.io.InputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.apache.vxquery.rest.service.Constants.Properties.AVAILABLE_PROCESSORS;
-import static org.apache.vxquery.rest.service.Constants.Properties.HDFS_CONFIG;
-import static org.apache.vxquery.rest.service.Constants.Properties.JOIN_HASH_SIZE;
-import static org.apache.vxquery.rest.service.Constants.Properties.MAXIMUM_DATA_SIZE;
+import static org.apache.vxquery.rest.Constants.Properties.AVAILABLE_PROCESSORS;
+import static org.apache.vxquery.rest.Constants.Properties.HDFS_CONFIG;
+import static org.apache.vxquery.rest.Constants.Properties.JOIN_HASH_SIZE;
+import static org.apache.vxquery.rest.Constants.Properties.MAXIMUM_DATA_SIZE;
 
 /**
  * Main class responsible for starting the {@link RestServer} and {@link VXQueryService} classes.

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.vxquery.rest.service;
+package org.apache.vxquery.rest;
 
 public class Constants {
 
@@ -34,6 +34,7 @@ public class Constants {
         public static final String SHOW_TET = "showTranslatedExpressionTree";
         public static final String SHOW_OET = "showOptimizedExpressionTree";
         public static final String SHOW_RP = "showRuntimePlan";
+        public static final String MODE = "mode";
     }
 
     public class URLs {
@@ -64,4 +65,7 @@ public class Constants {
     }
 
     public static final String RESULT_URL_PREFIX = "/vxquery/query/result/";
+
+    public static final String MODE_ASYNC = "async";
+    public static final String MODE_SYNC = "sync";
 }

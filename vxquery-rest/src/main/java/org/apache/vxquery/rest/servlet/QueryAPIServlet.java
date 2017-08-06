@@ -17,16 +17,30 @@
 package org.apache.vxquery.rest.servlet;
 
 import org.apache.hyracks.http.api.IServletRequest;
-import org.apache.vxquery.rest.service.Constants;
-import org.apache.vxquery.rest.service.VXQueryService;
 import org.apache.vxquery.exceptions.VXQueryServletRuntimeException;
+import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.Error;
+import org.apache.vxquery.rest.service.VXQueryService;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
+
+import static org.apache.vxquery.rest.Constants.MODE_ASYNC;
+import static org.apache.vxquery.rest.Constants.MODE_SYNC;
+import static org.apache.vxquery.rest.Constants.Parameters.COMPILE_ONLY;
+import static org.apache.vxquery.rest.Constants.Parameters.FRAME_SIZE;
+import static org.apache.vxquery.rest.Constants.Parameters.METRICS;
+import static org.apache.vxquery.rest.Constants.Parameters.MODE;
+import static org.apache.vxquery.rest.Constants.Parameters.OPTIMIZATION;
+import static org.apache.vxquery.rest.Constants.Parameters.REPEAT_EXECUTIONS;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_AST;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_OET;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_RP;
+import static org.apache.vxquery.rest.Constants.Parameters.SHOW_TET;
+import static org.apache.vxquery.rest.Constants.Parameters.STATEMENT;
 
 /**
  * Servlet to handle query requests.
@@ -65,27 +79,39 @@ public class QueryAPIServlet extends RestAPIServlet {
     }
 
     private QueryRequest getQueryRequest(IServletRequest request) {
-        if (request.getParameter(Constants.Parameters.STATEMENT) == null || request.getParameter(Constants.Parameters.STATEMENT).trim().isEmpty()) {
+        if (request.getParameter(STATEMENT) == null || request.getParameter(STATEMENT).trim().isEmpty()) {
             throw new IllegalArgumentException("Parameter 'statement' is required to handle the request");
         }
 
-        QueryRequest queryRequest = new QueryRequest(UUID.randomUUID().toString(), request.getParameter(Constants.Parameters.STATEMENT));
-        queryRequest.setCompileOnly(Boolean.parseBoolean(request.getParameter(Constants.Parameters.COMPILE_ONLY)));
-        queryRequest.setShowMetrics(Boolean.parseBoolean(request.getParameter(Constants.Parameters.METRICS)));
+        QueryRequest queryRequest = new QueryRequest(UUID.randomUUID().toString(), request.getParameter(STATEMENT));
+        queryRequest.setCompileOnly(Boolean.parseBoolean(request.getParameter(COMPILE_ONLY)));
+        queryRequest.setShowMetrics(Boolean.parseBoolean(request.getParameter(METRICS)));
 
-        queryRequest.setShowAbstractSyntaxTree(Boolean.parseBoolean(request.getParameter(Constants.Parameters.SHOW_AST)));
-        queryRequest.setShowTranslatedExpressionTree(Boolean.parseBoolean(request.getParameter(Constants.Parameters.SHOW_TET)));
-        queryRequest.setShowOptimizedExpressionTree(Boolean.parseBoolean(request.getParameter(Constants.Parameters.SHOW_OET)));
-        queryRequest.setShowRuntimePlan(Boolean.parseBoolean(request.getParameter(Constants.Parameters.SHOW_RP)));
+        queryRequest.setShowAbstractSyntaxTree(Boolean.parseBoolean(request.getParameter(SHOW_AST)));
+        queryRequest.setShowTranslatedExpressionTree(Boolean.parseBoolean(request.getParameter(SHOW_TET)));
+        queryRequest.setShowOptimizedExpressionTree(Boolean.parseBoolean(request.getParameter(SHOW_OET)));
+        queryRequest.setShowRuntimePlan(Boolean.parseBoolean(request.getParameter(SHOW_RP)));
 
-        if (request.getParameter(Constants.Parameters.OPTIMIZATION) != null) {
-            queryRequest.setOptimization(Integer.parseInt(request.getParameter(Constants.Parameters.OPTIMIZATION)));
+        if (request.getParameter(OPTIMIZATION) != null) {
+            queryRequest.setOptimization(Integer.parseInt(request.getParameter(OPTIMIZATION)));
         }
-        if (request.getParameter(Constants.Parameters.FRAME_SIZE) != null) {
-            queryRequest.setFrameSize(Integer.parseInt(request.getParameter(Constants.Parameters.FRAME_SIZE)));
+        if (request.getParameter(FRAME_SIZE) != null) {
+            queryRequest.setFrameSize(Integer.parseInt(request.getParameter(FRAME_SIZE)));
         }
-        if (request.getParameter(Constants.Parameters.REPEAT_EXECUTIONS) != null) {
-            queryRequest.setRepeatExecutions(Integer.parseInt(request.getParameter(Constants.Parameters.REPEAT_EXECUTIONS)));
+        if (request.getParameter(REPEAT_EXECUTIONS) != null) {
+            queryRequest.setRepeatExecutions(Integer.parseInt(request.getParameter(REPEAT_EXECUTIONS)));
+        }
+
+        if (request.getParameter(MODE) != null) {
+            switch (request.getParameter(MODE)) {
+                case MODE_SYNC:
+                    queryRequest.setAsync(false);
+                    break;
+                case MODE_ASYNC:
+                default:
+                    queryRequest.setAsync(true);
+                    break;
+            }
         }
 
         return queryRequest;

@@ -25,14 +25,15 @@ import org.apache.hyracks.http.api.IServletRequest;
 import org.apache.hyracks.http.api.IServletResponse;
 import org.apache.hyracks.http.server.AbstractServlet;
 import org.apache.hyracks.http.server.utils.HttpUtil;
-import org.apache.vxquery.rest.service.Constants;
-import org.apache.vxquery.rest.service.Status;
 import org.apache.vxquery.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.exceptions.VXQueryServletRuntimeException;
+import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.response.APIResponse;
+import org.apache.vxquery.rest.response.AsyncQueryResponse;
 import org.apache.vxquery.rest.response.ErrorResponse;
-import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
+import org.apache.vxquery.rest.response.SyncQueryResponse;
+import org.apache.vxquery.rest.service.Status;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -58,7 +59,8 @@ public abstract class RestAPIServlet extends AbstractServlet {
         super(ctx, paths);
         LOGGER = Logger.getLogger(this.getClass().getName());
         try {
-            jaxbContext = JAXBContext.newInstance(QueryResultResponse.class, QueryResponse.class, ErrorResponse.class);
+            jaxbContext = JAXBContext.newInstance(QueryResultResponse.class, AsyncQueryResponse.class,
+                    SyncQueryResponse.class, ErrorResponse.class);
         } catch (JAXBException e) {
             LOGGER.log(Level.SEVERE, "Error occurred when creating JAXB context", e);
             throw new VXQueryRuntimeException("Unable to load JAXBContext", e);

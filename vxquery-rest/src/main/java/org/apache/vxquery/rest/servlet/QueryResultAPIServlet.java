@@ -19,7 +19,7 @@ package org.apache.vxquery.rest.servlet;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.apache.hyracks.http.api.IServletRequest;
-import org.apache.vxquery.rest.service.Constants;
+import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.service.VXQueryService;
 import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.APIResponse;

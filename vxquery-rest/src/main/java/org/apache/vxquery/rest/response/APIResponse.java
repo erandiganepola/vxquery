@@ -17,7 +17,11 @@
 
 package org.apache.vxquery.rest.response;
 
+import org.apache.hyracks.api.dataset.ResultSetId;
+import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.service.Status;
+
+import static org.apache.vxquery.rest.Constants.RESULT_URL_PREFIX;
 
 public class APIResponse {
 
@@ -51,9 +55,18 @@ public class APIResponse {
         return response;
     }
 
-    public static QueryResponse newQueryResponse(String requestId) {
-        QueryResponse response = new QueryResponse();
-        response.setRequestId(requestId);
+    public static QueryResponse newQueryResponse(QueryRequest request, ResultSetId resultSetId) {
+        QueryResponse response;
+        if (request.isAsync()) {
+            AsyncQueryResponse asyncQueryResponse = new AsyncQueryResponse();
+            asyncQueryResponse.setResultId(resultSetId.getId());
+            asyncQueryResponse.setResultUrl(RESULT_URL_PREFIX + resultSetId.getId());
+            response = asyncQueryResponse;
+        } else {
+            response = new SyncQueryResponse();
+        }
+
+        response.setRequestId(request.getRequestId());
         return response;
     }
 

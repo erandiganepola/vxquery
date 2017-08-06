@@ -31,9 +31,9 @@ import org.apache.vxquery.app.VXQueryApplication;
 import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
+import org.apache.vxquery.rest.response.AsyncQueryResponse;
 import org.apache.vxquery.rest.response.Error;
 import org.apache.vxquery.rest.response.ErrorResponse;
-import org.apache.vxquery.rest.response.QueryResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineParser;
@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
-import static org.apache.vxquery.rest.service.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
+import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 
 
 public class VXQuery {
@@ -146,7 +146,7 @@ public class VXQuery {
         }
     }
 
-    private void onQuerySubmitSuccess(String xqFile, QueryRequest request, QueryResponse response) {
+    private void onQuerySubmitSuccess(String xqFile, QueryRequest request, AsyncQueryResponse response) {
         if (response == null) {
             System.err.println(String.format("Unable to execute query %s", request.getStatement()));
             return;
@@ -215,7 +215,7 @@ public class VXQuery {
     /**
      * Submits a query to be executed by the REST API. Will call {@link #onQueryFailure(String, ErrorResponse)} if any
      * error occurs when submitting the query. Else will call {@link #onQuerySubmitSuccess(String, QueryRequest,
-     * QueryResponse)} with the {@link QueryResponse}
+     * AsyncQueryResponse)} with the {@link AsyncQueryResponse}
      *
      * @param xqFile  .xq file with the query to be executed
      * @param request {@link QueryRequest} instance to be submitted to REST API
@@ -243,7 +243,7 @@ public class VXQuery {
 
                 String response = RestUtils.readEntity(entity);
                 if (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                    cli.onQuerySubmitSuccess(xqFile, request, RestUtils.mapEntity(response, QueryResponse.class, CONTENT_TYPE_JSON));
+                    cli.onQuerySubmitSuccess(xqFile, request, RestUtils.mapEntity(response, AsyncQueryResponse.class, CONTENT_TYPE_JSON));
                 } else {
                     cli.onQueryFailure(xqFile, RestUtils.mapEntity(response, ErrorResponse.class, CONTENT_TYPE_JSON));
                 }
