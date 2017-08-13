@@ -14,55 +14,40 @@
  */
 package org.apache.vxquery.xtest;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.HttpClientUtils;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.hyracks.api.client.IHyracksClientConnection;
+import org.apache.hyracks.api.dataset.IHyracksDataset;
+import org.apache.vxquery.app.util.RestUtils;
+import org.apache.vxquery.rest.request.QueryRequest;
+import org.apache.vxquery.rest.response.SyncQueryResponse;
+
+import javax.xml.bind.JAXBException;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hyracks.api.client.IHyracksClientConnection;
-import org.apache.hyracks.api.client.NodeControllerInfo;
-import org.apache.hyracks.api.comm.IFrame;
-import org.apache.hyracks.api.comm.IFrameTupleAccessor;
-import org.apache.hyracks.api.comm.VSizeFrame;
-import org.apache.hyracks.api.dataset.DatasetJobRecord;
-import org.apache.hyracks.api.dataset.IHyracksDataset;
-import org.apache.hyracks.api.dataset.IHyracksDatasetReader;
-import org.apache.hyracks.api.dataset.ResultSetId;
-import org.apache.hyracks.api.exceptions.HyracksException;
-import org.apache.hyracks.api.job.JobFlag;
-import org.apache.hyracks.api.job.JobId;
-import org.apache.hyracks.api.job.JobSpecification;
-import org.apache.hyracks.control.nc.resources.memory.FrameManager;
-import org.apache.hyracks.dataflow.common.comm.io.ResultFrameTupleAccessor;
-import org.apache.vxquery.compiler.CompilerControlBlock;
-import org.apache.vxquery.compiler.algebricks.VXQueryGlobalDataFactory;
-import org.apache.vxquery.context.DynamicContext;
-import org.apache.vxquery.context.DynamicContextImpl;
-import org.apache.vxquery.context.RootStaticContextImpl;
-import org.apache.vxquery.context.StaticContextImpl;
-import org.apache.vxquery.exceptions.ErrorCode;
-import org.apache.vxquery.exceptions.SystemException;
-import org.apache.vxquery.result.ResultUtils;
-import org.apache.vxquery.xmlquery.query.VXQueryCompilationListener;
-import org.apache.vxquery.xmlquery.query.XMLQueryCompiler;
+import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 
 public class TestRunner {
-    private static final Pattern EMBEDDED_SYSERROR_PATTERN = Pattern.compile("(\\p{javaUpperCase}{4}\\d{4})");
     private List<String> collectionList;
     private XTestOptions opts;
     private IHyracksClientConnection hcc;
     private IHyracksDataset hds;
+    private static TestConfiguration indexConf;
 
     public TestRunner(XTestOptions opts) throws UnknownHostException {
         this.opts = opts;
@@ -98,7 +83,6 @@ public class TestRunner {
             e.printStackTrace();
         }
         return indexConf;
-
     }
 
     public TestCaseResult run(final TestCase testCase) {
@@ -121,83 +105,22 @@ public class TestRunner {
         long start = System.currentTimeMillis();
 
         try {
-            try {
-                if (opts.showQuery) {
+            String query = FileUtils.readFileToString(testCase.getXQueryFile(), "UTF-8");
 
-                    FileInputStream query = new FileInputStream(testCase.getXQueryFile());
-                    System.err.println("***Query for " + testCase.getXQueryDisplayName() + ": ");
-                    System.err.println(IOUtils.toString(query, "UTF-8"));
-                    query.close();
-                }
-
-                VXQueryCompilationListener listener = new VXQueryCompilationListener(opts.showAST, opts.showTET,
-                        opts.showOET, opts.showRP);
-
-                Map<String, NodeControllerInfo> nodeControllerInfos = null;
-                if (hcc != null) {
-                    nodeControllerInfos = hcc.getNodeControllerInfos();
-                }
-
-                XMLQueryCompiler compiler = new XMLQueryCompiler(listener, nodeControllerInfos, opts.frameSize,
-                        opts.hdfsConf);
-                Reader in = new InputStreamReader(new FileInputStream(testCase.getXQueryFile()), "UTF-8");
-                CompilerControlBlock ccb = new CompilerControlBlock(
-                        new StaticContextImpl(RootStaticContextImpl.INSTANCE),
-                        new ResultSetId(testCase.getXQueryDisplayName().hashCode()), testCase.getSourceFileMap());
-                compiler.compile(testCase.getXQueryDisplayName(), in, ccb, opts.optimizationLevel, collectionList);
-                JobSpecification spec = compiler.getModule().getHyracksJobSpecification();
-                in.close();
-
-                DynamicContext dCtx = new DynamicContextImpl(compiler.getModule().getModuleContext());
-                spec.setGlobalJobDataFactory(new VXQueryGlobalDataFactory(dCtx.createFactory()));
-
-                spec.setMaxReattempts(0);
-                JobId jobId = hcc.startJob(spec, EnumSet.of(JobFlag.PROFILE_RUNTIME));
-
-                FrameManager resultDisplayFrameMgr = new FrameManager(spec.getFrameSize());
-                IFrame frame = new VSizeFrame(resultDisplayFrameMgr);
-                IHyracksDatasetReader reader = hds.createReader(jobId, ccb.getResultSetId());
-                // TODO(tillw) remove this loop once the IHyracksDatasetReader reliably returns the correct exception
-                while (reader.getResultStatus() == DatasetJobRecord.Status.RUNNING) {
-                    Thread.sleep(1);
-                }
-                IFrameTupleAccessor frameTupleAccessor = new ResultFrameTupleAccessor();
-                res.result = "";
-                while (reader.read(frame) > 0) {
-                    res.result += ResultUtils.getStringFromBuffer(frame.getBuffer(), frameTupleAccessor);
-                    frame.getBuffer().clear();
-                }
-                res.result.trim();
-                hcc.waitForCompletion(jobId);
-            } catch (HyracksException e) {
-                Throwable t = e;
-                while (t.getCause() != null) {
-                    t = t.getCause();
-                }
-                final String message = t.getMessage();
-                if (message != null) {
-                    Matcher m = EMBEDDED_SYSERROR_PATTERN.matcher(message);
-                    if (m.find()) {
-                        String eCode = m.group(1);
-                        throw new SystemException(ErrorCode.valueOf(eCode), e);
-                    }
-                }
-                throw e;
+            if (opts.showQuery) {
+                System.err.println("***Query for " + testCase.getXQueryDisplayName() + ": ");
+                System.err.println(query);
             }
+
+            QueryRequest request = createQueryRequest(opts, query);
+            SyncQueryResponse queryResponse = sendQueryRequest(request, opts);
+            if (queryResponse == null) {
+                System.err.println("Empty response: Error occurred when obtaining QueryResponse from REST API");
+            }
+
+            res.result = queryResponse.getResults();
         } catch (Throwable e) {
-            // Check for nested SystemExceptions.
-            Throwable error = e;
-            while (error != null) {
-                if (error instanceof SystemException) {
-                    res.error = error;
-                    break;
-                }
-                error = error.getCause();
-            }
-            // Default
-            if (res.error == null) {
-                res.error = e;
-            }
+            res.error = e;
         } finally {
             try {
                 res.compare();
@@ -208,6 +131,7 @@ public class TestRunner {
             long end = System.currentTimeMillis();
             res.time = end - start;
         }
+
         if (opts.showResult) {
             if (res.result == null) {
                 System.err.println("***Error: ");
@@ -218,7 +142,49 @@ public class TestRunner {
                 System.err.println(res.result);
             }
         }
+    }
 
+    private static QueryRequest createQueryRequest(XTestOptions opts, String query) {
+        QueryRequest request = new QueryRequest(query);
+        request.setCompileOnly(opts.compileOnly);
+        request.setOptimization(opts.optimizationLevel);
+        request.setFrameSize(opts.frameSize);
+//        request.setRepeatExecutions(opts.repeatExec);
+        request.setShowAbstractSyntaxTree(opts.showAST);
+        request.setShowTranslatedExpressionTree(opts.showTET);
+        request.setShowOptimizedExpressionTree(opts.showOET);
+        request.setShowRuntimePlan(opts.showRP);
+        request.setAsync(false);
+
+        return request;
+    }
+
+    private static SyncQueryResponse sendQueryRequest(QueryRequest request, XTestOptions opts) throws IOException, URISyntaxException {
+        URI uri = RestUtils.buildQueryURI(request,
+                TestClusterUtil.localClusterUtil.getIpAddress(),
+                TestClusterUtil.localClusterUtil.getRestPort());
+        CloseableHttpClient httpClient = HttpClients.custom().build();
+
+        try {
+            HttpGet httpGet = new HttpGet(uri);
+            httpGet.setHeader(HttpHeaders.ACCEPT, CONTENT_TYPE_JSON);
+
+            try (CloseableHttpResponse httpResponse = httpClient.execute(httpGet)) {
+                HttpEntity entity = httpResponse.getEntity();
+                if (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                    String response = RestUtils.readEntity(entity);
+                    return RestUtils.mapEntity(response, SyncQueryResponse.class, CONTENT_TYPE_JSON);
+                }
+            } catch (IOException e) {
+                System.err.println("Error occurred when reading entity: " + e.getMessage());
+            } catch (JAXBException e) {
+                System.err.println("Error occurred when mapping query response: " + e.getMessage());
+            }
+        } finally {
+            HttpClientUtils.closeQuietly(httpClient);
+        }
+
+        return null;
     }
 
     public void runQueries(TestCase testCase, TestCaseResult res) {

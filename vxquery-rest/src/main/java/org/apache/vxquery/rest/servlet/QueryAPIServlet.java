@@ -74,7 +74,9 @@ public class QueryAPIServlet extends RestAPIServlet {
             return vxQueryService.execute(queryRequest);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error occurred when trying to execute query : " + queryRequest.getStatement(), e);
-            throw new VXQueryServletRuntimeException("Unable to execute the query given", e);
+            return APIResponse.newErrorResponse(queryRequest.getRequestId(),
+                    Error.builder().withCode(Constants.ErrorCodes.UNFORSEEN_PROBLEM)
+                            .withMessage(e.getMessage()).build());
         }
     }
 

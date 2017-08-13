@@ -30,6 +30,7 @@ import org.apache.hyracks.api.client.NodeControllerInfo;
 import org.apache.hyracks.api.comm.IFrame;
 import org.apache.hyracks.api.comm.IFrameTupleAccessor;
 import org.apache.hyracks.api.comm.VSizeFrame;
+import org.apache.hyracks.api.dataset.DatasetJobRecord;
 import org.apache.hyracks.api.dataset.IHyracksDatasetReader;
 import org.apache.hyracks.api.dataset.ResultSetId;
 import org.apache.hyracks.api.exceptions.HyracksException;
@@ -65,8 +66,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -178,9 +181,9 @@ public class VXQueryService {
                                                                       vxQueryConfig.getMaximumDataSize(),
                                                                       vxQueryConfig.getHdfsConf());
         CompilerControlBlock compilerControlBlock = new CompilerControlBlock(new StaticContextImpl(RootStaticContextImpl.INSTANCE),
-                                                                                    resultSetId, null);
+                                                                                    resultSetId, new HashMap<>());
         try {
-            compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization(), null);
+            compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization(), new ArrayList<>());
         } catch (AlgebricksException e) {
             LOGGER.log(Level.SEVERE, String.format("Error occurred when compiling query: '%s' with message: '%s'", query, e.getMessage()));
             return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(PROBLEM_WITH_QUERY)
@@ -293,10 +296,13 @@ public class VXQueryService {
         FrameManager resultDisplayFrameMgr = new FrameManager(jobContext.getFrameSize());
         IFrame frame = new VSizeFrame(resultDisplayFrameMgr);
         IHyracksDatasetReader reader = hyracksDataset.createReader(jobContext.getJobId(), jobContext.getResultSetId());
-        IFrameTupleAccessor frameTupleAccessor = new ResultFrameTupleAccessor();
-
         OutputStream resultStream = new ByteArrayOutputStream();
 
+        while (reader.getResultStatus() == DatasetJobRecord.Status.RUNNING) {
+            Thread.sleep(1);
+        }
+
+        IFrameTupleAccessor frameTupleAccessor = new ResultFrameTupleAccessor();
         try (PrintWriter writer = new PrintWriter(resultStream, true)) {
             while (reader.read(frame) > 0) {
                 writer.print(ResultUtils.getStringFromBuffer(frame.getBuffer(), frameTupleAccessor));
@@ -306,7 +312,7 @@ public class VXQueryService {
         }
 
         hyracksClientConnection.waitForCompletion(jobContext.getJobId());
-        LOGGER.log(Level.INFO, String.format("Result for resultId %d completed", jobContext.getResultSetId().getId()));
+        LOGGER.log(Level.FINE, String.format("Result for resultId %d completed", jobContext.getResultSetId().getId()));
         return resultStream.toString();
     }
 

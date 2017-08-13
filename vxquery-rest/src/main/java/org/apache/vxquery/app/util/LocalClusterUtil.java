@@ -33,8 +33,12 @@ import org.apache.vxquery.rest.service.VXQueryService;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
 import java.util.Arrays;
+
+import static org.apache.vxquery.rest.Constants.Properties.AVAILABLE_PROCESSORS;
+import static org.apache.vxquery.rest.Constants.Properties.HDFS_CONFIG;
+import static org.apache.vxquery.rest.Constants.Properties.JOIN_HASH_SIZE;
+import static org.apache.vxquery.rest.Constants.Properties.MAXIMUM_DATA_SIZE;
 
 /**
  * A utility class to start the a local hyracks cluster.
@@ -60,6 +64,14 @@ public class LocalClusterUtil {
     public VXQueryService vxQueryService;
 
     public void init(VXQueryConfig config) throws Exception {
+        // Following properties are needed by the app to setup
+        System.setProperty(AVAILABLE_PROCESSORS, String.valueOf(config.getAvailableProcessors()));
+        System.setProperty(JOIN_HASH_SIZE, String.valueOf(config.getJoinHashSize()));
+        System.setProperty(MAXIMUM_DATA_SIZE, String.valueOf(config.getMaximumDataSize()));
+        if (config.getHdfsConf() != null) {
+            System.setProperty(HDFS_CONFIG, config.getHdfsConf());
+        }
+
         // Cluster controller
         CCConfig ccConfig = createCCConfig();
         clusterControllerService = new ClusterControllerService(ccConfig);
@@ -93,6 +105,7 @@ public class LocalClusterUtil {
         ccConfig.profileDumpPeriod = 10000;
         ccConfig.appCCMainClass = VXQueryApplication.class.getName();
         ccConfig.appArgs = Arrays.asList("-restPort", String.valueOf(DEFAULT_VXQUERY_REST_PORT));
+
         return ccConfig;
     }
 
@@ -105,8 +118,8 @@ public class LocalClusterUtil {
         ncConfig.dataIPAddress = localAddress;
         ncConfig.resultIPAddress = localAddress;
         ncConfig.nodeId = "test_node";
-        //TODO: enable index folder as a cli option for on-the-fly indexing queries
-        ncConfig.ioDevices = Files.createTempDirectory(ncConfig.nodeId).toString();
+        // TODO: 8/13/17 Let this location come through config
+        ncConfig.ioDevices = "target/tmp/indexFolder";
         return ncConfig;
     }
 

@@ -24,10 +24,8 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.hyracks.control.cc.ClusterControllerService;
-import org.apache.hyracks.control.common.controllers.CCConfig;
-import org.apache.hyracks.control.common.controllers.NCConfig;
 import org.apache.hyracks.control.nc.NodeControllerService;
-import org.apache.vxquery.app.VXQueryApplication;
+import org.apache.vxquery.app.util.LocalClusterUtil;
 import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
@@ -35,6 +33,7 @@ import org.apache.vxquery.rest.response.AsyncQueryResponse;
 import org.apache.vxquery.rest.response.Error;
 import org.apache.vxquery.rest.response.ErrorResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
+import org.apache.vxquery.rest.service.VXQueryConfig;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -43,19 +42,20 @@ import javax.xml.bind.JAXBException;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 
-
+/**
+ * CLI for VXQuery. This class is using the REST API to execute statements given by the user.
+ *
+ * @author Erandi Ganepola
+ */
 public class VXQuery {
 
     private final CmdLineOptions opts;
@@ -63,6 +63,7 @@ public class VXQuery {
     private static List<String> timingMessages = new ArrayList<>();
     private static ClusterControllerService clusterControllerService;
     private static NodeControllerService nodeControllerService;
+    private static LocalClusterUtil localClusterUtil;
 
     private String restIpAddress;
     private int restPort;
@@ -107,9 +108,13 @@ public class VXQuery {
     private void execute(List<String> xqFiles) {
         if (opts.restIpAddress == null) {
             System.out.println("No REST Ip address given. Creating a local hyracks cluster");
+
+            VXQueryConfig vxqConfig = new VXQueryConfig();
+            localClusterUtil = new LocalClusterUtil();
             try {
-                restIpAddress = startLocalHyracks();
-                restPort = opts.restPort;
+                localClusterUtil.init(vxqConfig);
+                restIpAddress = localClusterUtil.getIpAddress();
+                restPort = localClusterUtil.getRestPort();
             } catch (Exception e) {
                 System.err.println("Unable to start local hyracks cluster due to: " + e.getMessage());
                 return;
@@ -122,9 +127,9 @@ public class VXQuery {
         System.out.println("Running queries given in: " + Arrays.toString(xqFiles.toArray()));
         runQueries(xqFiles);
 
-        if (opts.restIpAddress == null) {
+        if (localClusterUtil != null) {
             try {
-                stopLocalHyracks();
+                localClusterUtil.deinit();
             } catch (Exception e) {
                 System.err.println("Error occurred when stopping local hyracks: " + e.getMessage());
             }
@@ -230,10 +235,7 @@ public class VXQuery {
             cli.onQueryFailure(xqFile, null);
         }
 
-        CloseableHttpClient httpClient = HttpClients.custom()
-                                                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
-                                                 .build();
-
+        CloseableHttpClient httpClient = HttpClients.custom().build();
         try {
             HttpGet httpGet = new HttpGet(uri);
             httpGet.setHeader(HttpHeaders.ACCEPT, CONTENT_TYPE_JSON);
@@ -268,9 +270,7 @@ public class VXQuery {
             cli.onQueryFailure(xqFile, null);
         }
 
-        CloseableHttpClient httpClient = HttpClients.custom()
-                                                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
-                                                 .build();
+        CloseableHttpClient httpClient = HttpClients.custom().build();
 
         try {
             HttpGet httpGet = new HttpGet(uri);
@@ -311,51 +311,6 @@ public class VXQuery {
         request.setShowRuntimePlan(opts.showRP);
 
         return request;
-    }
-
-    /**
-     * Start local virtual cluster with cluster controller node and node controller nodes. IP address provided for node
-     * controller is localhost. Unassigned ports 39000 and 39001 are used for client and cluster port respectively.
-     * Creates a new Hyracks connection with the IP address and client ports.
-     *
-     * @throws Exception
-     */
-    public String startLocalHyracks() throws Exception {
-        String localAddress = InetAddress.getLocalHost().getHostAddress();
-        CCConfig ccConfig = new CCConfig();
-        ccConfig.clientNetIpAddress = localAddress;
-        ccConfig.clientNetPort = 39000;
-        ccConfig.clusterNetIpAddress = localAddress;
-        ccConfig.clusterNetPort = 39001;
-        ccConfig.httpPort = 39002;
-        ccConfig.profileDumpPeriod = 10000;
-        ccConfig.appCCMainClass = VXQueryApplication.class.getName();
-        ccConfig.appArgs = Arrays.asList("-restPort", String.valueOf(opts.restPort));
-        clusterControllerService = new ClusterControllerService(ccConfig);
-        clusterControllerService.start();
-
-        NCConfig ncConfig = new NCConfig();
-        ncConfig.ccHost = "localhost";
-        ncConfig.ccPort = 39001;
-        ncConfig.clusterNetIPAddress = localAddress;
-        ncConfig.dataIPAddress = localAddress;
-        ncConfig.resultIPAddress = localAddress;
-        ncConfig.nodeId = "nc";
-        ncConfig.ioDevices = Files.createTempDirectory(ncConfig.nodeId).toString();
-        nodeControllerService = new NodeControllerService(ncConfig);
-        nodeControllerService.start();
-
-        return localAddress;
-    }
-
-    /**
-     * Shuts down the virtual cluster, along with all nodes and node execution, network and queue managers.
-     *
-     * @throws Exception
-     */
-    public void stopLocalHyracks() throws Exception {
-        nodeControllerService.stop();
-        clusterControllerService.stop();
     }
 
     /**
