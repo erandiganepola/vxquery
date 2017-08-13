@@ -33,6 +33,7 @@ import org.apache.vxquery.rest.service.VXQueryService;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 import static org.apache.vxquery.rest.Constants.Properties.AVAILABLE_PROCESSORS;
@@ -118,8 +119,7 @@ public class LocalClusterUtil {
         ncConfig.dataIPAddress = localAddress;
         ncConfig.resultIPAddress = localAddress;
         ncConfig.nodeId = "test_node";
-        // TODO: 8/13/17 Let this location come through config
-        ncConfig.ioDevices = "target/tmp/indexFolder";
+        ncConfig.ioDevices = Files.createTempDirectory(ncConfig.nodeId).toString();
         return ncConfig;
     }
 

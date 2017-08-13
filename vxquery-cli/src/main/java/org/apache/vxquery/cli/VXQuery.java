@@ -28,11 +28,10 @@ import org.apache.hyracks.control.nc.NodeControllerService;
 import org.apache.vxquery.app.util.LocalClusterUtil;
 import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.request.QueryRequest;
-import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.AsyncQueryResponse;
 import org.apache.vxquery.rest.response.Error;
 import org.apache.vxquery.rest.response.ErrorResponse;
-import org.apache.vxquery.rest.response.QueryResultResponse;
+import org.apache.vxquery.rest.response.SyncQueryResponse;
 import org.apache.vxquery.rest.service.VXQueryConfig;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineParser;
@@ -110,6 +109,12 @@ public class VXQuery {
             System.out.println("No REST Ip address given. Creating a local hyracks cluster");
 
             VXQueryConfig vxqConfig = new VXQueryConfig();
+            vxqConfig.setAvailableProcessors(opts.availableProcessors);
+            vxqConfig.setFrameSize(opts.frameSize);
+            vxqConfig.setHdfsConf(opts.hdfsConf);
+            vxqConfig.setJoinHashSize(opts.joinHashSize);
+            vxqConfig.setMaximumDataSize(opts.maximumDataSize);
+
             localClusterUtil = new LocalClusterUtil();
             try {
                 localClusterUtil.init(vxqConfig);
@@ -117,6 +122,7 @@ public class VXQuery {
                 restPort = localClusterUtil.getRestPort();
             } catch (Exception e) {
                 System.err.println("Unable to start local hyracks cluster due to: " + e.getMessage());
+                e.printStackTrace();
                 return;
             }
         } else {
@@ -146,21 +152,21 @@ public class VXQuery {
                 continue;
             }
 
+            System.out.println();
+            System.out.println("====================================================");
+            System.out.println("\tQuery - '" + xqFile + "'");
+            System.out.println("====================================================");
+
             QueryRequest request = createQueryRequest(opts, query);
             sendQueryRequest(xqFile, request, this);
         }
     }
 
-    private void onQuerySubmitSuccess(String xqFile, QueryRequest request, AsyncQueryResponse response) {
+    private void onSuccess(String xqFile, QueryRequest request, SyncQueryResponse response) {
         if (response == null) {
             System.err.println(String.format("Unable to execute query %s", request.getStatement()));
             return;
         }
-
-        System.out.println();
-        System.out.println("====================================================");
-        System.out.println("\t'" + xqFile + "' Results");
-        System.out.println("====================================================");
 
         if (opts.showQuery) {
             printField("Query", response.getStatement());
@@ -169,7 +175,7 @@ public class VXQuery {
         if (request.isShowMetrics()) {
             String metrics = String.format("Compile Time:\t%d\nElapsed Time:\t%d", response.getMetrics().getCompileTime(),
                     response.getMetrics().getElapsedTime());
-            printField("Query Submission Metrics", metrics);
+            printField("Metrics", metrics);
         }
 
         if (request.isShowAbstractSyntaxTree()) {
@@ -188,21 +194,10 @@ public class VXQuery {
             printField("Runtime Plan", response.getRuntimePlan());
         }
 
-        QueryResultRequest resultRequest = new QueryResultRequest(response.getResultId(), response.getRequestId());
-        resultRequest.setShowMetrics(opts.timing);
-        sendQueryResultRequest(xqFile, resultRequest, this);
-    }
-
-    private void onQueryResultFetchSuccess(String xqFile, QueryResultRequest request, QueryResultResponse response) {
-        if (request.isShowMetrics()) {
-            String metrics = String.format("Elapsed Time:\t%d", response.getMetrics().getElapsedTime());
-            printField("Result Reading Metrics", metrics);
-        }
-
         printField("Results", response.getResults());
     }
 
-    private void onQueryFailure(String xqFile, ErrorResponse response) {
+    private void onFailure(String xqFile, ErrorResponse response) {
         if (response == null) {
             System.err.println(String.format("Unable to execute query in %s", xqFile));
             return;
@@ -218,9 +213,9 @@ public class VXQuery {
 
 
     /**
-     * Submits a query to be executed by the REST API. Will call {@link #onQueryFailure(String, ErrorResponse)} if any
-     * error occurs when submitting the query. Else will call {@link #onQuerySubmitSuccess(String, QueryRequest,
-     * AsyncQueryResponse)} with the {@link AsyncQueryResponse}
+     * Submits a query to be executed by the REST API. Will call {@link #onFailure(String, ErrorResponse)} if any error
+     * occurs when submitting the query. Else will call {@link #onSuccess(String, QueryRequest, SyncQueryResponse)} with
+     * the {@link AsyncQueryResponse}
      *
      * @param xqFile  .xq file with the query to be executed
      * @param request {@link QueryRequest} instance to be submitted to REST API
@@ -232,7 +227,7 @@ public class VXQuery {
             uri = RestUtils.buildQueryURI(request, cli.restIpAddress, cli.restPort);
         } catch (URISyntaxException e) {
             System.err.println(String.format("Unable to build URI to call REST API for query: %s", request.getStatement()));
-            cli.onQueryFailure(xqFile, null);
+            cli.onFailure(xqFile, null);
         }
 
         CloseableHttpClient httpClient = HttpClients.custom().build();
@@ -245,58 +240,21 @@ public class VXQuery {
 
                 String response = RestUtils.readEntity(entity);
                 if (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                    cli.onQuerySubmitSuccess(xqFile, request, RestUtils.mapEntity(response, AsyncQueryResponse.class, CONTENT_TYPE_JSON));
+                    cli.onSuccess(xqFile, request, RestUtils.mapEntity(response, SyncQueryResponse.class, CONTENT_TYPE_JSON));
                 } else {
-                    cli.onQueryFailure(xqFile, RestUtils.mapEntity(response, ErrorResponse.class, CONTENT_TYPE_JSON));
+                    cli.onFailure(xqFile, RestUtils.mapEntity(response, ErrorResponse.class, CONTENT_TYPE_JSON));
                 }
             } catch (IOException e) {
                 System.err.println("Error occurred when reading entity: " + e.getMessage());
-                cli.onQueryFailure(xqFile, null);
+                cli.onFailure(xqFile, null);
             } catch (JAXBException e) {
                 System.err.println("Error occurred when mapping query response: " + e.getMessage());
-                cli.onQueryFailure(xqFile, null);
+                cli.onFailure(xqFile, null);
             }
         } finally {
             HttpClientUtils.closeQuietly(httpClient);
         }
     }
-
-    private static void sendQueryResultRequest(String xqFile, QueryResultRequest request, VXQuery cli) {
-        URI uri = null;
-        try {
-            uri = RestUtils.buildQueryResultURI(request, cli.restIpAddress, cli.restPort);
-        } catch (URISyntaxException e) {
-            System.err.println(String.format("Unable to build URI to fetch results for query in %s", xqFile));
-            cli.onQueryFailure(xqFile, null);
-        }
-
-        CloseableHttpClient httpClient = HttpClients.custom().build();
-
-        try {
-            HttpGet httpGet = new HttpGet(uri);
-            httpGet.setHeader(HttpHeaders.ACCEPT, CONTENT_TYPE_JSON);
-
-            try (CloseableHttpResponse httpResponse = httpClient.execute(httpGet)) {
-                HttpEntity entity = httpResponse.getEntity();
-
-                String response = RestUtils.readEntity(entity);
-                if (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                    cli.onQueryResultFetchSuccess(xqFile, request, RestUtils.mapEntity(response, QueryResultResponse.class, CONTENT_TYPE_JSON));
-                } else {
-                    cli.onQueryFailure(xqFile, RestUtils.mapEntity(response, ErrorResponse.class, CONTENT_TYPE_JSON));
-                }
-            } catch (IOException e) {
-                System.err.println("Error occurred when reading entity: " + e.getMessage());
-                cli.onQueryFailure(xqFile, null);
-            } catch (JAXBException e) {
-                System.err.println("Error occurred when mapping query result response: " + e.getMessage());
-                cli.onQueryFailure(xqFile, null);
-            }
-        } finally {
-            HttpClientUtils.closeQuietly(httpClient);
-        }
-    }
-
 
     private static QueryRequest createQueryRequest(CmdLineOptions opts, String query) {
         QueryRequest request = new QueryRequest(query);
@@ -309,6 +267,7 @@ public class VXQuery {
         request.setShowTranslatedExpressionTree(opts.showTET);
         request.setShowOptimizedExpressionTree(opts.showOET);
         request.setShowRuntimePlan(opts.showRP);
+        request.setAsync(false);
 
         return request;
     }

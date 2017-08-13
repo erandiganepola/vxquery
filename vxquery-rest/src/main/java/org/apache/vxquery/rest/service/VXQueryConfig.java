@@ -44,7 +44,9 @@ public class VXQueryConfig {
     }
 
     public void setAvailableProcessors(int availableProcessors) {
-        this.availableProcessors = availableProcessors;
+        if (availableProcessors > 0) {
+            this.availableProcessors = availableProcessors;
+        }
     }
 
     public long getJoinHashSize() {
