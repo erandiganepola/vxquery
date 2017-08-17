@@ -23,14 +23,13 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.hyracks.control.cc.ClusterControllerService;
-import org.apache.hyracks.control.nc.NodeControllerService;
 import org.apache.vxquery.app.util.LocalClusterUtil;
 import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.AsyncQueryResponse;
 import org.apache.vxquery.rest.response.Error;
 import org.apache.vxquery.rest.response.ErrorResponse;
+import org.apache.vxquery.rest.response.Metrics;
 import org.apache.vxquery.rest.response.SyncQueryResponse;
 import org.apache.vxquery.rest.service.VXQueryConfig;
 import org.kohsuke.args4j.Argument;
@@ -59,13 +58,12 @@ public class VXQuery {
 
     private final CmdLineOptions opts;
 
-    private static List<String> timingMessages = new ArrayList<>();
-    private static ClusterControllerService clusterControllerService;
-    private static NodeControllerService nodeControllerService;
     private static LocalClusterUtil localClusterUtil;
-
     private String restIpAddress;
     private int restPort;
+
+    private static List<Metrics> metricsList = new ArrayList<>();
+    private int executionIteration;
 
     /**
      * Constructor to use command line options passed.
@@ -158,7 +156,18 @@ public class VXQuery {
             System.out.println("====================================================");
 
             QueryRequest request = createQueryRequest(opts, query);
-            sendQueryRequest(xqFile, request, this);
+            metricsList.clear();
+
+            for (int i = 0; i < opts.repeatExec; i++) {
+                System.out.println("**** Repetition : " + (i + 1) + " ****");
+
+                executionIteration = i;
+                sendQueryRequest(xqFile, request, this);
+            }
+
+            if (opts.repeatExec > 1) {
+                showTimingSummary();
+            }
         }
     }
 
@@ -173,8 +182,8 @@ public class VXQuery {
         }
 
         if (request.isShowMetrics()) {
-            String metrics = String.format("Compile Time:\t%d\nElapsed Time:\t%d", response.getMetrics().getCompileTime(),
-                    response.getMetrics().getElapsedTime());
+            String metrics = String.format("Compile Time:\t%d\nElapsed Time:\t%d",
+                    response.getMetrics().getCompileTime(), response.getMetrics().getElapsedTime());
             printField("Metrics", metrics);
         }
 
@@ -195,6 +204,10 @@ public class VXQuery {
         }
 
         printField("Results", response.getResults());
+
+        if (executionIteration >= opts.timingIgnoreQueries) {
+            metricsList.add(response.getMetrics());
+        }
     }
 
     private void onFailure(String xqFile, ErrorResponse response) {
@@ -254,6 +267,48 @@ public class VXQuery {
         } finally {
             HttpClientUtils.closeQuietly(httpClient);
         }
+    }
+
+    /**
+     * Once the query in a given .xq file has been executed (with repeated executions as well), this method calculates
+     * mean, standard deviation, minimum and maximum execution times.
+     */
+    private void showTimingSummary() {
+        double sumTime = 0;
+        double sumSquaredTime = 0;
+        long minTime = Long.MAX_VALUE;
+        long maxTime = Long.MIN_VALUE;
+
+        for (int i = 0; i < metricsList.size(); i++) {
+            Metrics metrics = metricsList.get(i);
+            long totalTime = metrics.getCompileTime() + metrics.getElapsedTime();
+
+            sumTime += totalTime;
+            sumSquaredTime += totalTime * totalTime;
+
+            if (totalTime < minTime) {
+                minTime = totalTime;
+            }
+
+            if (totalTime > maxTime) {
+                maxTime = totalTime;
+            }
+        }
+
+        double mean = sumTime / (opts.repeatExec - opts.timingIgnoreQueries);
+        double sd = Math.sqrt(sumSquaredTime / (opts.repeatExec - opts.timingIgnoreQueries) - mean * mean);
+
+        System.out.println();
+        System.out.println("\t**** Timing Summary ****");
+        System.out.println("----------------------------------------------------");
+        System.out.println(String.format("Repetitions:\t%d, Timing Ignored Iterations:\t%d",
+                opts.repeatExec, opts.timingIgnoreQueries));
+        System.out.println("Average execution time:\t" + mean + " ms");
+        System.out.println("Standard deviation:\t" + String.format("%.4f", sd));
+        System.out.println("Coefficient of variation:\t" + String.format("%.4f", sd / mean));
+        System.out.println("Minimum execution time:\t" + minTime + " ms");
+        System.out.println("Maximum execution time:\t" + maxTime + " ms");
+        System.out.println();
     }
 
     private static QueryRequest createQueryRequest(CmdLineOptions opts, String query) {
@@ -357,7 +412,7 @@ public class VXQuery {
         private String resultFile = null;
 
         @Option(name = "-timing-ignore-queries", usage = "Ignore the first X number of quereies.")
-        private int timingIgnoreQueries = 2;
+        private int timingIgnoreQueries = 0;
 
         @Option(name = "-hdfs-conf", usage = "Directory path to Hadoop configuration files")
         private String hdfsConf = null;
