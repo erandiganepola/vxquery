@@ -18,6 +18,10 @@ package org.apache.vxquery.rest.request;
 
 import org.apache.vxquery.rest.RestServer;
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Request to represent a query request coming to the {@link RestServer}
  *
@@ -39,6 +43,9 @@ public class QueryRequest {
     private boolean showRuntimePlan = false;
     /** A unique UUID to uniquely identify a given request */
     private String requestId;
+
+    /** An optional map of source files. Required for XTests */
+    private Map<String, File> sourceFileMap = new HashMap<>();
 
     public QueryRequest(String statement) {
         this(null, statement);
@@ -143,5 +150,13 @@ public class QueryRequest {
 
     public void setAsync(boolean async) {
         this.async = async;
+    }
+
+    public Map<String, File> getSourceFileMap() {
+        return sourceFileMap;
+    }
+
+    public void setSourceFileMap(Map<String, File> sourceFileMap) {
+        this.sourceFileMap = sourceFileMap;
     }
 }

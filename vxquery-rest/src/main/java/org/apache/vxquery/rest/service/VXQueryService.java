@@ -181,7 +181,7 @@ public class VXQueryService {
                                                                       vxQueryConfig.getMaximumDataSize(),
                                                                       vxQueryConfig.getHdfsConf());
         CompilerControlBlock compilerControlBlock = new CompilerControlBlock(new StaticContextImpl(RootStaticContextImpl.INSTANCE),
-                                                                                    resultSetId, new HashMap<>());
+                                                                                    resultSetId, request.getSourceFileMap());
         try {
             compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization(), new ArrayList<>());
         } catch (AlgebricksException e) {
@@ -297,10 +297,6 @@ public class VXQueryService {
         IFrame frame = new VSizeFrame(resultDisplayFrameMgr);
         IHyracksDatasetReader reader = hyracksDataset.createReader(jobContext.getJobId(), jobContext.getResultSetId());
         OutputStream resultStream = new ByteArrayOutputStream();
-
-        while (reader.getResultStatus() == DatasetJobRecord.Status.RUNNING) {
-            Thread.sleep(1);
-        }
 
         IFrameTupleAccessor frameTupleAccessor = new ResultFrameTupleAccessor();
         try (PrintWriter writer = new PrintWriter(resultStream, true)) {

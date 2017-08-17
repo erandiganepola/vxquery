@@ -17,17 +17,25 @@
 package org.apache.vxquery.rest.servlet;
 
 import org.apache.hyracks.http.api.IServletRequest;
-import org.apache.vxquery.exceptions.VXQueryServletRuntimeException;
+import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.Error;
 import org.apache.vxquery.rest.service.VXQueryService;
 
+import javax.xml.bind.JAXBException;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.AbstractMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import static org.apache.vxquery.rest.Constants.MODE_ASYNC;
 import static org.apache.vxquery.rest.Constants.MODE_SYNC;
 import static org.apache.vxquery.rest.Constants.Parameters.COMPILE_ONLY;
@@ -80,7 +88,7 @@ public class QueryAPIServlet extends RestAPIServlet {
         }
     }
 
-    private QueryRequest getQueryRequest(IServletRequest request) {
+    private QueryRequest getQueryRequest(IServletRequest request) throws IOException, JAXBException {
         if (request.getParameter(STATEMENT) == null || request.getParameter(STATEMENT).trim().isEmpty()) {
             throw new IllegalArgumentException("Parameter 'statement' is required to handle the request");
         }
@@ -102,6 +110,16 @@ public class QueryAPIServlet extends RestAPIServlet {
         }
         if (request.getParameter(REPEAT_EXECUTIONS) != null) {
             queryRequest.setRepeatExecutions(Integer.parseInt(request.getParameter(REPEAT_EXECUTIONS)));
+        }
+
+        String sourceFileMap = request.getHttpRequest().content().toString(StandardCharsets.UTF_8);
+        if (sourceFileMap != null && !sourceFileMap.isEmpty()) {
+            Map<String, String> map = (Map<String, String>) RestUtils.mapEntity(sourceFileMap, Map.class, request.getHeader(CONTENT_TYPE));
+            LOGGER.log(Level.FINE, "Found source file map");
+            Map<String, File> fileMap = map.entrySet().stream()
+                                                .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), new File(entry.getValue())))
+                                                .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+            queryRequest.setSourceFileMap(fileMap);
         }
 
         if (request.getParameter(MODE) != null) {

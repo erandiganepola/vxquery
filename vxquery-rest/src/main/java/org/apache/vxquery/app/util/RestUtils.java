@@ -102,15 +102,14 @@ public class RestUtils {
 
     public static <T> T mapEntity(String entity, Class<T> type, String contentType) throws IOException, JAXBException {
         switch (contentType) {
-            case CONTENT_TYPE_JSON:
-                ObjectMapper jsonMapper = new ObjectMapper();
-                return jsonMapper.readValue(entity, type);
             case CONTENT_TYPE_XML:
                 JAXBContext jaxbContext = JAXBContext.newInstance(type);
                 Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
                 return type.cast(unmarshaller.unmarshal(new StringReader(entity)));
+            case CONTENT_TYPE_JSON:
+            default:
+                ObjectMapper jsonMapper = new ObjectMapper();
+                return jsonMapper.readValue(entity, type);
         }
-
-        throw new IllegalArgumentException("Entity didn't match any content type");
     }
 }

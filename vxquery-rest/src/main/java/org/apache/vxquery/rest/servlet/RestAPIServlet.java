@@ -27,7 +27,6 @@ import org.apache.hyracks.http.server.AbstractServlet;
 import org.apache.hyracks.http.server.utils.HttpUtil;
 import org.apache.vxquery.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.exceptions.VXQueryServletRuntimeException;
-import org.apache.vxquery.rest.Constants;
 import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.AsyncQueryResponse;
 import org.apache.vxquery.rest.response.ErrorResponse;
@@ -43,6 +42,9 @@ import java.io.StringWriter;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
+import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
 
 /**
  * Abstract servlet to handle REST API requests.
@@ -67,7 +69,17 @@ public abstract class RestAPIServlet extends AbstractServlet {
         }
     }
 
+    @Override
+    protected final void post(IServletRequest request, IServletResponse response) {
+        getOrPost(request, response);
+    }
+
+    @Override
     protected final void get(IServletRequest request, IServletResponse response) {
+        getOrPost(request, response);
+    }
+
+    private void getOrPost(IServletRequest request, IServletResponse response) {
         try {
             initResponse(request, response);
             APIResponse entity = doHandle(request);
@@ -98,9 +110,9 @@ public abstract class RestAPIServlet extends AbstractServlet {
         String accept = request.getHeader(HttpHeaderNames.ACCEPT, "");
         String entityString;
         switch (accept) {
-            case Constants.HttpHeaderValues.CONTENT_TYPE_XML:
+            case CONTENT_TYPE_XML:
                 try {
-                    HttpUtil.setContentType(response, Constants.HttpHeaderValues.CONTENT_TYPE_XML);
+                    HttpUtil.setContentType(response, CONTENT_TYPE_XML);
 
                     Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
                     jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
@@ -112,10 +124,10 @@ public abstract class RestAPIServlet extends AbstractServlet {
                     throw new VXQueryServletRuntimeException("Error occurred when marshalling entity", e);
                 }
                 break;
-            case Constants.HttpHeaderValues.CONTENT_TYPE_JSON:
+            case CONTENT_TYPE_JSON:
             default:
                 try {
-                    HttpUtil.setContentType(response, Constants.HttpHeaderValues.CONTENT_TYPE_JSON);
+                    HttpUtil.setContentType(response, CONTENT_TYPE_JSON);
                     ObjectMapper jsonMapper = new ObjectMapper();
                     entityString = jsonMapper.writeValueAsString(entity);
                 } catch (JsonProcessingException e) {

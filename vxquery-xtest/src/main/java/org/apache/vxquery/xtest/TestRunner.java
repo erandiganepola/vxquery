@@ -20,8 +20,9 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.HttpClientUtils;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.hyracks.api.client.IHyracksClientConnection;
@@ -29,6 +30,7 @@ import org.apache.hyracks.api.dataset.IHyracksDataset;
 import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.response.SyncQueryResponse;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import javax.xml.bind.JAXBException;
 import java.io.File;
@@ -36,9 +38,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 
@@ -66,7 +70,7 @@ public class TestRunner {
         opts.showQuery = true;
         opts.showResult = true;
         opts.hdfsConf = "src/test/resources/hadoop/conf";
-        opts.catalog = StringUtils.join(new String[] { "src", "test", "resources", "VXQueryCatalog.xml" },
+        opts.catalog = StringUtils.join(new String[]{"src", "test", "resources", "VXQueryCatalog.xml"},
                 File.separator);
         TestConfiguration indexConf = new TestConfiguration();
         indexConf.options = opts;
@@ -113,7 +117,7 @@ public class TestRunner {
             }
 
             QueryRequest request = createQueryRequest(opts, query);
-            SyncQueryResponse queryResponse = sendQueryRequest(request, opts);
+            SyncQueryResponse queryResponse = sendQueryRequest(request, testCase.getSourceFileMap());
             if (queryResponse == null) {
                 System.err.println("Empty response: Error occurred when obtaining QueryResponse from REST API");
             }
@@ -159,17 +163,23 @@ public class TestRunner {
         return request;
     }
 
-    private static SyncQueryResponse sendQueryRequest(QueryRequest request, XTestOptions opts) throws IOException, URISyntaxException {
+    private static SyncQueryResponse sendQueryRequest(QueryRequest request, Map<String, File> sourceFileMap)
+            throws IOException, URISyntaxException {
+
         URI uri = RestUtils.buildQueryURI(request,
                 TestClusterUtil.localClusterUtil.getIpAddress(),
                 TestClusterUtil.localClusterUtil.getRestPort());
         CloseableHttpClient httpClient = HttpClients.custom().build();
 
         try {
-            HttpGet httpGet = new HttpGet(uri);
-            httpGet.setHeader(HttpHeaders.ACCEPT, CONTENT_TYPE_JSON);
+            HttpPost httpRequest = new HttpPost(uri);
+            httpRequest.setHeader(HttpHeaders.ACCEPT, CONTENT_TYPE_JSON);
 
-            try (CloseableHttpResponse httpResponse = httpClient.execute(httpGet)) {
+            ObjectMapper mapper = new ObjectMapper();
+            String fileMap = mapper.writeValueAsString(sourceFileMap);
+            httpRequest.setEntity(new StringEntity(fileMap, StandardCharsets.UTF_8));
+
+            try (CloseableHttpResponse httpResponse = httpClient.execute(httpRequest)) {
                 HttpEntity entity = httpResponse.getEntity();
                 if (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
                     String response = RestUtils.readEntity(entity);
