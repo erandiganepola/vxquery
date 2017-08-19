@@ -15,7 +15,6 @@
 package org.apache.vxquery.xtest;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpStatus;
@@ -25,10 +24,12 @@ import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.hyracks.api.client.IHyracksClientConnection;
-import org.apache.hyracks.api.dataset.IHyracksDataset;
 import org.apache.vxquery.app.util.RestUtils;
+import org.apache.vxquery.exceptions.ErrorCode;
+import org.apache.vxquery.exceptions.SystemException;
 import org.apache.vxquery.rest.request.QueryRequest;
+import org.apache.vxquery.rest.response.APIResponse;
+import org.apache.vxquery.rest.response.ErrorResponse;
 import org.apache.vxquery.rest.response.SyncQueryResponse;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -39,64 +40,27 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 
 public class TestRunner {
-    private List<String> collectionList;
+
+    private static final Pattern EMBEDDED_SYSERROR_PATTERN = Pattern.compile("(\\p{javaUpperCase}{4}\\d{4})");
+
     private XTestOptions opts;
-    private IHyracksClientConnection hcc;
-    private IHyracksDataset hds;
-    private static TestConfiguration indexConf;
 
     public TestRunner(XTestOptions opts) throws UnknownHostException {
         this.opts = opts;
-        this.collectionList = new ArrayList<String>();
     }
 
     public void open() throws Exception {
-        hcc = TestClusterUtil.getConnection();
-        hds = TestClusterUtil.getDataset();
-    }
-
-    protected static TestConfiguration getIndexConfiguration(TestCase testCase) {
-        XTestOptions opts = new XTestOptions();
-        opts.verbose = false;
-        opts.threads = 1;
-        opts.showQuery = true;
-        opts.showResult = true;
-        opts.hdfsConf = "src/test/resources/hadoop/conf";
-        opts.catalog = StringUtils.join(new String[]{"src", "test", "resources", "VXQueryCatalog.xml"},
-                File.separator);
-        TestConfiguration indexConf = new TestConfiguration();
-        indexConf.options = opts;
-        String baseDir = new File(opts.catalog).getParent();
-        try {
-            String root = new File(baseDir).getCanonicalPath();
-            indexConf.testRoot = new File(root + "/./");
-            indexConf.resultOffsetPath = new File(root + "/./ExpectedResults/");
-            indexConf.sourceFileMap = testCase.getSourceFileMap();
-            indexConf.xqueryFileExtension = ".xq";
-            indexConf.xqueryxFileExtension = "xqx";
-            indexConf.xqueryQueryOffsetPath = new File(root + "/./Queries/XQuery/");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return indexConf;
     }
 
     public TestCaseResult run(final TestCase testCase) {
         TestCaseResult res = new TestCaseResult(testCase);
-        TestCase testCaseIndex = new TestCase(getIndexConfiguration(testCase));
-        testCaseIndex.setFolder("Indexing/Partition-1/");
-        testCaseIndex.setName("showIndexes");
-        runQuery(testCaseIndex, res);
-        String[] collections = res.result.split("\n");
-        this.collectionList = Arrays.asList(collections);
         runQueries(testCase, res);
         return res;
     }
@@ -117,12 +81,22 @@ public class TestRunner {
             }
 
             QueryRequest request = createQueryRequest(opts, query);
-            SyncQueryResponse queryResponse = sendQueryRequest(request, testCase.getSourceFileMap());
-            if (queryResponse == null) {
-                System.err.println("Empty response: Error occurred when obtaining QueryResponse from REST API");
-            }
+            APIResponse response = sendQueryRequest(request, testCase.getSourceFileMap());
+            if (response instanceof SyncQueryResponse) {
+                res.result = ((SyncQueryResponse) response).getResults();
+            } else {
+                System.err.println("Error response: Failure when running the query");
+                ErrorResponse errorResponse = (ErrorResponse) response;
+                Matcher m = EMBEDDED_SYSERROR_PATTERN.matcher(errorResponse.getError().getMessage());
 
-            res.result = queryResponse.getResults();
+                Exception e = new RuntimeException("Failed to run the query");
+                if (m.find()) {
+                    String eCode = m.group(1);
+                    throw new SystemException(ErrorCode.valueOf(eCode), e);
+                } else {
+                    throw e;
+                }
+            }
         } catch (Throwable e) {
             res.error = e;
         } finally {
@@ -153,7 +127,7 @@ public class TestRunner {
         request.setCompileOnly(opts.compileOnly);
         request.setOptimization(opts.optimizationLevel);
         request.setFrameSize(opts.frameSize);
-//        request.setRepeatExecutions(opts.repeatExec);
+        // request.setRepeatExecutions(opts.repeatExec);
         request.setShowAbstractSyntaxTree(opts.showAST);
         request.setShowTranslatedExpressionTree(opts.showTET);
         request.setShowOptimizedExpressionTree(opts.showOET);
@@ -163,7 +137,7 @@ public class TestRunner {
         return request;
     }
 
-    private static SyncQueryResponse sendQueryRequest(QueryRequest request, Map<String, File> sourceFileMap)
+    private static APIResponse sendQueryRequest(QueryRequest request, Map<String, File> sourceFileMap)
             throws IOException, URISyntaxException {
 
         URI uri = RestUtils.buildQueryURI(request,
@@ -181,9 +155,11 @@ public class TestRunner {
 
             try (CloseableHttpResponse httpResponse = httpClient.execute(httpRequest)) {
                 HttpEntity entity = httpResponse.getEntity();
+                String response = RestUtils.readEntity(entity);
                 if (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                    String response = RestUtils.readEntity(entity);
                     return RestUtils.mapEntity(response, SyncQueryResponse.class, CONTENT_TYPE_JSON);
+                } else {
+                    return RestUtils.mapEntity(response, ErrorResponse.class, CONTENT_TYPE_JSON);
                 }
             } catch (IOException e) {
                 System.err.println("Error occurred when reading entity: " + e.getMessage());

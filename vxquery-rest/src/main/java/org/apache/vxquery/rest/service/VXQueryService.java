@@ -47,6 +47,7 @@ import org.apache.vxquery.context.DynamicContext;
 import org.apache.vxquery.context.DynamicContextImpl;
 import org.apache.vxquery.context.RootStaticContextImpl;
 import org.apache.vxquery.context.StaticContextImpl;
+import org.apache.vxquery.exceptions.ErrorCode;
 import org.apache.vxquery.exceptions.SystemException;
 import org.apache.vxquery.exceptions.VXQueryRuntimeException;
 import org.apache.vxquery.rest.request.QueryRequest;
@@ -67,14 +68,17 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.logging.Level.SEVERE;
 import static org.apache.vxquery.rest.Constants.ErrorCodes.NOT_FOUND;
@@ -89,14 +93,14 @@ import static org.apache.vxquery.rest.Constants.ErrorCodes.UNFORSEEN_PROBLEM;
  */
 public class VXQueryService {
 
-    public static final Logger LOGGER = Logger.getLogger(VXQueryService.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(VXQueryService.class.getName());
+
+    private static final Pattern EMBEDDED_SYSERROR_PATTERN = Pattern.compile("(\\p{javaUpperCase}{4}\\d{4})");
 
     private volatile State state = State.STOPPED;
     private VXQueryConfig vxQueryConfig;
     private AtomicLong atomicLong = new AtomicLong(0);
-
     private Map<Long, HyracksJobContext> jobContexts = new ConcurrentHashMap<>();
-
     private IHyracksClientConnection hyracksClientConnection;
     private HyracksDataset hyracksDataset;
 
@@ -145,6 +149,16 @@ public class VXQueryService {
      * @return AsyncQueryResponse if no error occurs | ErrorResponse else
      */
     public APIResponse execute(final QueryRequest request) {
+        QueryRequest indexingRequest = new QueryRequest("show-indexes()");
+        indexingRequest.setAsync(false);
+        SyncQueryResponse indexingResponse = (SyncQueryResponse) execute(indexingRequest, new ArrayList<>());
+        LOGGER.log(Level.FINE, String.format("Found indexes: %s", indexingResponse.getResults()));
+
+        List<String> collections = Arrays.asList(indexingResponse.getResults().split("\n"));
+        return execute(request, collections);
+    }
+
+    private APIResponse execute(final QueryRequest request, List<String> collections) {
         if (!State.STARTED.equals(state)) {
             throw new IllegalStateException("VXQueryService is at state : " + state);
         }
@@ -183,7 +197,7 @@ public class VXQueryService {
         CompilerControlBlock compilerControlBlock = new CompilerControlBlock(new StaticContextImpl(RootStaticContextImpl.INSTANCE),
                                                                                     resultSetId, request.getSourceFileMap());
         try {
-            compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization(), new ArrayList<>());
+            compiler.compile(null, new StringReader(query), compilerControlBlock, request.getOptimization(), collections);
         } catch (AlgebricksException e) {
             LOGGER.log(Level.SEVERE, String.format("Error occurred when compiling query: '%s' with message: '%s'", query, e.getMessage()));
             return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(PROBLEM_WITH_QUERY)
@@ -191,9 +205,8 @@ public class VXQueryService {
                                                                                 .build());
         } catch (SystemException e) {
             LOGGER.log(Level.SEVERE, String.format("Error occurred when compiling query: '%s' with message: '%s'", query, e.getMessage()));
-            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(PROBLEM_WITH_QUERY)
-                                                                                .withMessage("Query compilation failure: " + e.getMessage())
-                                                                                .build());
+            return APIResponse.newErrorResponse(request.getRequestId(),
+                    new Error(PROBLEM_WITH_QUERY, "Query compilation failure: " + e.getCode()));
         }
 
         if (request.isShowMetrics()) {
@@ -227,11 +240,15 @@ public class VXQueryService {
             try {
                 String results = readResults(hyracksJobContext);
                 ((SyncQueryResponse) response).setResults(results);
+            } catch (HyracksException e) {
+                LOGGER.log(Level.SEVERE, "Error occurred when reading results", e);
+                SystemException se = getSystemException(e);
+                return APIResponse.newErrorResponse(request.getRequestId(),
+                        new Error(UNFORSEEN_PROBLEM, String.format("Error occurred when reading results: %s", se != null ? se.getCode() : "")));
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error occurred when reading results", e);
-                return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(UNFORSEEN_PROBLEM)
-                                                                                    .withMessage("Error occurred when reading results")
-                                                                                    .build());
+                return APIResponse.newErrorResponse(request.getRequestId(),
+                        new Error(UNFORSEEN_PROBLEM, "Error occurred when reading results: " + e.getMessage()));
             }
         }
 
@@ -240,6 +257,28 @@ public class VXQueryService {
         }
 
         return response;
+    }
+
+    private static SystemException getSystemException(HyracksException e) {
+        Throwable t = e;
+        Throwable candidate = t instanceof SystemException ? t : null;
+        while (t.getCause() != null) {
+            t = t.getCause();
+            if (t instanceof SystemException) {
+                candidate = t;
+            }
+        }
+
+        t = candidate == null ? t : candidate;
+        final String message = t.getMessage();
+        if (message != null) {
+            Matcher m = EMBEDDED_SYSERROR_PATTERN.matcher(message);
+            if (m.find()) {
+                String eCode = m.group(1);
+                return new SystemException(ErrorCode.valueOf(eCode), e);
+            }
+        }
+        return null;
     }
 
     // TODO: 7/12/17 Allow multiple executions of the same query
@@ -261,9 +300,7 @@ public class VXQueryService {
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error occurred when reading results for id : " + request.getResultId());
                 return APIResponse.newErrorResponse(request.getRequestId(),
-                        Error.builder().withCode(UNFORSEEN_PROBLEM)
-                                .withMessage("Error occurred when reading results from hyracks for result ID: " + request.getResultId())
-                                .build());
+                        new Error(UNFORSEEN_PROBLEM, "Error occurred when reading results for: " + request.getResultId()));
             }
 
             if (request.isShowMetrics()) {
@@ -297,6 +334,11 @@ public class VXQueryService {
         IFrame frame = new VSizeFrame(resultDisplayFrameMgr);
         IHyracksDatasetReader reader = hyracksDataset.createReader(jobContext.getJobId(), jobContext.getResultSetId());
         OutputStream resultStream = new ByteArrayOutputStream();
+
+        // This loop is required for XTests to reliably identify the error code of SystemException.
+        while (reader.getResultStatus() == DatasetJobRecord.Status.RUNNING) {
+            Thread.sleep(100);
+        }
 
         IFrameTupleAccessor frameTupleAccessor = new ResultFrameTupleAccessor();
         try (PrintWriter writer = new PrintWriter(resultStream, true)) {
