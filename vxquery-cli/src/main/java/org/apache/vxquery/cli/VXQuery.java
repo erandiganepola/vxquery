@@ -362,10 +362,10 @@ public class VXQuery {
      * Helper class with fields and methods to handle all command line options
      */
     private static class CmdLineOptions {
-        @Option(name = "-rest-ip-address", usage = "IP Address of the ClusterController.")
+        @Option(name = "-rest-ip-address", usage = "IP Address of the REST Server")
         private String restIpAddress = null;
 
-        @Option(name = "-rest-port", usage = "Port of the ClusterController. (default: 1098)")
+        @Option(name = "-rest-port", usage = "Port of REST Server")
         private int restPort = 8085;
 
         @Option(name = "-compileonly", usage = "Compile the query and stop.")
