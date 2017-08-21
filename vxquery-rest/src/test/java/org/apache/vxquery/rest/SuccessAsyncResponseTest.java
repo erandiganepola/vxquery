@@ -28,7 +28,9 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
+import org.apache.vxquery.rest.response.APIResponse;
 import org.apache.vxquery.rest.response.AsyncQueryResponse;
+import org.apache.vxquery.rest.response.ErrorResponse;
 import org.apache.vxquery.rest.response.QueryResultResponse;
 import org.apache.vxquery.rest.service.Status;
 import org.junit.Assert;
@@ -58,6 +60,7 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
         request.setShowTranslatedExpressionTree(true);
         request.setShowMetrics(false);
 
+        runTest(null, request);
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
     }
@@ -71,6 +74,7 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
         request.setShowTranslatedExpressionTree(true);
         request.setShowMetrics(true);
 
+        runTest(null, request);
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
     }
@@ -84,6 +88,7 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
         request.setShowTranslatedExpressionTree(false);
         request.setShowMetrics(false);
 
+        runTest(null, request);
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
     }
@@ -97,6 +102,96 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
         request.setShowTranslatedExpressionTree(false);
         request.setShowMetrics(false);
 
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterNone() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterMetrics() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowMetrics(true);
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterAST() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowAbstractSyntaxTree(true);
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterOptimization() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setOptimization(10000);
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterFrameSize() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setFrameSize((int) Math.pow(2, 12));
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterCompileOnly() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setCompileOnly(true);
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterOET() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowOptimizedExpressionTree(true);
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterTET() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowTranslatedExpressionTree(true);
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterRP() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowRuntimePlan(true);
+
+        runTest(null, request);
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
     }
@@ -110,52 +205,44 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
         // Testing the accuracy of VXQueryService class
         AsyncQueryResponse expectedAsyncQueryResponse = (AsyncQueryResponse) vxQueryService.execute(request);
 
-        Assert.assertTrue(expectedAsyncQueryResponse.getResultUrl().startsWith(Constants.RESULT_URL_PREFIX));
         Assert.assertEquals(Status.SUCCESS.toString(), expectedAsyncQueryResponse.getStatus());
-        Assert.assertNotEquals(0, expectedAsyncQueryResponse.getResultId());
         Assert.assertEquals(request.getStatement(), expectedAsyncQueryResponse.getStatement());
-
+        checkResults(expectedAsyncQueryResponse, request.isCompileOnly());
+        checkMetrics(expectedAsyncQueryResponse, request.isShowMetrics());
         if (request.isShowMetrics()) {
             Assert.assertTrue(expectedAsyncQueryResponse.getMetrics().getCompileTime() > 0);
         } else {
             Assert.assertTrue(expectedAsyncQueryResponse.getMetrics().getCompileTime() == 0);
         }
-
         if (request.isShowAbstractSyntaxTree()) {
             Assert.assertNotNull(expectedAsyncQueryResponse.getAbstractSyntaxTree());
         } else {
             Assert.assertNull(expectedAsyncQueryResponse.getAbstractSyntaxTree());
         }
-
         if (request.isShowTranslatedExpressionTree()) {
             Assert.assertNotNull(expectedAsyncQueryResponse.getTranslatedExpressionTree());
         } else {
             Assert.assertNull(expectedAsyncQueryResponse.getTranslatedExpressionTree());
         }
-
         if (request.isShowOptimizedExpressionTree()) {
             Assert.assertNotNull(expectedAsyncQueryResponse.getOptimizedExpressionTree());
         } else {
             Assert.assertNull(expectedAsyncQueryResponse.getOptimizedExpressionTree());
         }
-
         if (request.isShowRuntimePlan()) {
             Assert.assertNotNull(expectedAsyncQueryResponse.getRuntimePlan());
         } else {
             Assert.assertNull(expectedAsyncQueryResponse.getRuntimePlan());
         }
 
-        checkMetrics(expectedAsyncQueryResponse, request.isShowMetrics());
-
         //Testing the accuracy of REST server and servlets
         AsyncQueryResponse actualAsyncQueryResponse = getQueryResponse(queryEndpointUri, contentType);
+
         Assert.assertNotNull(actualAsyncQueryResponse.getRequestId());
-        Assert.assertTrue(actualAsyncQueryResponse.getResultUrl().startsWith(Constants.RESULT_URL_PREFIX));
-        Assert.assertNotEquals(0, actualAsyncQueryResponse.getResultId());
         Assert.assertEquals(request.getStatement(), actualAsyncQueryResponse.getStatement());
         Assert.assertEquals(Status.SUCCESS.toString(), actualAsyncQueryResponse.getStatus());
+        checkResults(actualAsyncQueryResponse, request.isCompileOnly());
         checkMetrics(actualAsyncQueryResponse, request.isShowMetrics());
-
         // Cannot check this because Runtime plan include some object IDs which differ
         // Assert.assertEquals(expectedAsyncQueryResponse.getRuntimePlan(), actualAsyncQueryResponse.getRuntimePlan());
         if (request.isShowRuntimePlan()) {
@@ -163,10 +250,10 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
         } else {
             Assert.assertNull(actualAsyncQueryResponse.getRuntimePlan());
         }
-
         Assert.assertEquals(normalize(expectedAsyncQueryResponse.getOptimizedExpressionTree()), normalize(actualAsyncQueryResponse.getOptimizedExpressionTree()));
         Assert.assertEquals(normalize(expectedAsyncQueryResponse.getTranslatedExpressionTree()), normalize(actualAsyncQueryResponse.getTranslatedExpressionTree()));
         Assert.assertEquals(normalize(expectedAsyncQueryResponse.getAbstractSyntaxTree()), normalize(actualAsyncQueryResponse.getAbstractSyntaxTree()));
+
 
         /*
          * ========== Query Result Response Testing ========
@@ -174,20 +261,25 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
         QueryResultRequest resultRequest = new QueryResultRequest(actualAsyncQueryResponse.getResultId());
         resultRequest.setShowMetrics(true);
 
-        QueryResultResponse expectedResultResponse = (QueryResultResponse) vxQueryService.getResult(resultRequest);
-        Assert.assertEquals(expectedResultResponse.getStatus(), Status.SUCCESS.toString());
-        Assert.assertNotNull(expectedResultResponse.getResults());
-
-        QueryResultResponse actualResultResponse = getQueryResultResponse(resultRequest, contentType);
-        Assert.assertEquals(actualResultResponse.getStatus(), Status.SUCCESS.toString());
-        Assert.assertNotNull(actualResultResponse.getResults());
-        Assert.assertNotNull(actualResultResponse.getRequestId());
-        Assert.assertEquals(normalize(expectedResultResponse.getResults()), normalize(actualResultResponse.getResults()));
-
-        if (resultRequest.isShowMetrics()) {
-            Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() > 0);
+        if (request.isCompileOnly()) {
+            APIResponse resultResponse = vxQueryService.getResult(resultRequest);
+            Assert.assertTrue(resultResponse instanceof ErrorResponse);
         } else {
-            Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() == 0);
+            QueryResultResponse expectedResultResponse = (QueryResultResponse) vxQueryService.getResult(resultRequest);
+            Assert.assertEquals(expectedResultResponse.getStatus(), Status.SUCCESS.toString());
+            Assert.assertNotNull(expectedResultResponse.getResults());
+
+            QueryResultResponse actualResultResponse = getQueryResultResponse(resultRequest, contentType);
+            Assert.assertEquals(actualResultResponse.getStatus(), Status.SUCCESS.toString());
+            Assert.assertNotNull(actualResultResponse.getResults());
+            Assert.assertNotNull(actualResultResponse.getRequestId());
+            Assert.assertEquals(normalize(expectedResultResponse.getResults()), normalize(actualResultResponse.getResults()));
+            if (resultRequest.isShowMetrics()) {
+                Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() > 0);
+            } else {
+                Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() == 0);
+            }
+
         }
     }
 
@@ -206,11 +298,15 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
 
         try {
             HttpGet request = new HttpGet(uri);
-            request.setHeader(HttpHeaders.ACCEPT, accepts);
+            if (accepts != null) {
+                request.setHeader(HttpHeaders.ACCEPT, accepts);
+            }
 
             try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
                 Assert.assertEquals(HttpResponseStatus.OK.code(), httpResponse.getStatusLine().getStatusCode());
-                Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                if (accepts != null) {
+                    Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                }
 
                 HttpEntity entity = httpResponse.getEntity();
                 Assert.assertNotNull(entity);
@@ -241,10 +337,14 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
 
         try {
             HttpGet request = new HttpGet(queryResultEndpointUri);
-            request.setHeader(HttpHeaders.ACCEPT, accepts);
+            if (accepts != null) {
+                request.setHeader(HttpHeaders.ACCEPT, accepts);
+            }
 
             try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
-                Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                if (accepts != null) {
+                    Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                }
                 Assert.assertEquals(httpResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
 
                 HttpEntity entity = httpResponse.getEntity();

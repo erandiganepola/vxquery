@@ -52,6 +52,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     @Test
     public void testInvalidInput01() throws Exception {
         QueryRequest request = new QueryRequest("   ");
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, INVALID_INPUT);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, INVALID_INPUT);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, INVALID_INPUT);
     }
@@ -59,6 +60,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     @Test
     public void testInvalidInput02() throws Exception {
         QueryRequest request = new QueryRequest("");
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, 405);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, 405);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, 405);
     }
@@ -66,6 +68,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     @Test
     public void testInvalidQuery01() throws Exception {
         QueryRequest request = new QueryRequest("for $x in (1,2,3) return $y");
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
     }
@@ -73,6 +76,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     @Test
     public void testInvalidQuery02() throws Exception {
         QueryRequest request = new QueryRequest("for x in (1,2,3) return $x");
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
     }
@@ -80,6 +84,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     @Test
     public void testInvalidQuery03() throws Exception {
         QueryRequest request = new QueryRequest("insert nodes <book></book> into doc(\"abcd.xml\")/books");
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
     }
@@ -87,6 +92,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     @Test
     public void testInvalidQuery04() throws Exception {
         QueryRequest request = new QueryRequest("delete nodes /a/b//node()");
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
     }
@@ -94,6 +100,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     @Test
     public void testInvalidResultId() throws Exception {
         QueryResultRequest request = new QueryResultRequest(1000);
+        runTest(buildQueryResultURI(request, restIpAddress, restPort), null, NOT_FOUND);
         runTest(buildQueryResultURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, NOT_FOUND);
         runTest(buildQueryResultURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, NOT_FOUND);
     }
@@ -102,6 +109,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     public void testSyncInvalidInput01() throws Exception {
         QueryRequest request = new QueryRequest("   ");
         request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, INVALID_INPUT);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, INVALID_INPUT);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, INVALID_INPUT);
     }
@@ -110,6 +118,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     public void testSyncInvalidInput02() throws Exception {
         QueryRequest request = new QueryRequest("");
         request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, 405);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, 405);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, 405);
     }
@@ -118,6 +127,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     public void testSyncInvalidQuery01() throws Exception {
         QueryRequest request = new QueryRequest("for $x in (1,2,3) return $y");
         request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
     }
@@ -126,6 +136,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     public void testSyncInvalidQuery02() throws Exception {
         QueryRequest request = new QueryRequest("for x in (1,2,3) return $x");
         request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
     }
@@ -134,6 +145,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     public void testSyncInvalidQuery03() throws Exception {
         QueryRequest request = new QueryRequest("insert nodes <book></book> into doc(\"abcd.xml\")/books");
         request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
     }
@@ -142,6 +154,7 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     public void testSyncInvalidQuery04() throws Exception {
         QueryRequest request = new QueryRequest("delete nodes /a/b//node()");
         request.setAsync(false);
+        runTest(buildQueryURI(request, restIpAddress, restPort), null, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_JSON, PROBLEM_WITH_QUERY);
         runTest(buildQueryURI(request, restIpAddress, restPort), CONTENT_TYPE_XML, PROBLEM_WITH_QUERY);
     }
@@ -152,11 +165,15 @@ public class ErrorResponseTest extends AbstractRestServerTest {
         ErrorResponse errorResponse;
         try {
             HttpGet httpGet = new HttpGet(uri);
-            httpGet.setHeader(HttpHeaders.ACCEPT, accepts);
+            if (accepts != null) {
+                httpGet.setHeader(HttpHeaders.ACCEPT, accepts);
+            }
 
             try (CloseableHttpResponse httpResponse = httpClient.execute(httpGet)) {
                 Assert.assertEquals(expectedStatusCode, httpResponse.getStatusLine().getStatusCode());
-                Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                if (accepts != null) {
+                    Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                }
 
                 HttpEntity entity = httpResponse.getEntity();
                 Assert.assertNotNull(entity);

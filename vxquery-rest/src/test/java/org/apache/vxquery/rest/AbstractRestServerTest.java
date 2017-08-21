@@ -19,7 +19,9 @@ package org.apache.vxquery.rest;
 
 import org.apache.vxquery.app.VXQueryApplication;
 import org.apache.vxquery.app.util.LocalClusterUtil;
+import org.apache.vxquery.rest.response.AsyncQueryResponse;
 import org.apache.vxquery.rest.response.QueryResponse;
+import org.apache.vxquery.rest.response.SyncQueryResponse;
 import org.apache.vxquery.rest.service.VXQueryConfig;
 import org.apache.vxquery.rest.service.VXQueryService;
 import org.junit.AfterClass;
@@ -70,4 +72,22 @@ public class AbstractRestServerTest {
         }
     }
 
+    protected static void checkResults(AsyncQueryResponse response, boolean compileOnly) {
+        if (compileOnly) {
+            Assert.assertNull(response.getResultUrl());
+            Assert.assertEquals(0, response.getResultId());
+        } else {
+            Assert.assertTrue(response.getResultUrl().startsWith(Constants.RESULT_URL_PREFIX));
+            Assert.assertNotEquals(0, response.getResultId());
+        }
+    }
+
+    protected static void checkResults(SyncQueryResponse response, boolean compileOnly) {
+        if (compileOnly) {
+            Assert.assertNull(response.getResults());
+        } else {
+            Assert.assertNotNull(response.getResults());
+            Assert.assertFalse(response.getResults().isEmpty());
+        }
+    }
 }

@@ -29,12 +29,15 @@ import java.util.Map;
  */
 public class QueryRequest {
 
+    public static final int DEFAULT_FRAMESIZE = 65536;
+    public static final int DEFAULT_OPTIMIZATION = 0;
+
     private String statement;
     private boolean async = true;
     private boolean compileOnly;
-    private int optimization = 0;
+    private int optimization = DEFAULT_OPTIMIZATION;
     /** Frame size in bytes. (default: 65,536) */
-    private int frameSize = 65536;
+    private int frameSize = DEFAULT_FRAMESIZE;
     private int repeatExecutions = 1;
     private boolean showMetrics = false;
     private boolean showAbstractSyntaxTree = false;

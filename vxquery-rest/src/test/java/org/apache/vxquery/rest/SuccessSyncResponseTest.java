@@ -58,6 +58,7 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
         request.setShowMetrics(false);
         request.setAsync(false);
 
+        runTest(null, request);
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
     }
@@ -72,6 +73,7 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
         request.setShowMetrics(true);
         request.setAsync(false);
 
+        runTest(null, request);
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
     }
@@ -86,6 +88,7 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
         request.setShowMetrics(false);
         request.setAsync(false);
 
+        runTest(null, request);
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
     }
@@ -100,6 +103,28 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
         request.setShowMetrics(false);
         request.setAsync(false);
 
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterNone() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setAsync(false);
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
+    @Test
+    public void testSingleParameterCompileOnly() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setCompileOnly(true);
+        request.setAsync(false);
+
+        runTest(null, request);
         runTest(CONTENT_TYPE_JSON, request);
         runTest(CONTENT_TYPE_XML, request);
     }
@@ -115,46 +140,42 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
 
         Assert.assertEquals(Status.SUCCESS.toString(), expectedSyncQueryResponse.getStatus());
         Assert.assertEquals(request.getStatement(), expectedSyncQueryResponse.getStatement());
-
+        checkResults(expectedSyncQueryResponse, request.isCompileOnly());
+        checkMetrics(expectedSyncQueryResponse, request.isShowMetrics());
         if (request.isShowMetrics()) {
             Assert.assertTrue(expectedSyncQueryResponse.getMetrics().getCompileTime() > 0);
         } else {
             Assert.assertTrue(expectedSyncQueryResponse.getMetrics().getCompileTime() == 0);
         }
-
         if (request.isShowAbstractSyntaxTree()) {
             Assert.assertNotNull(expectedSyncQueryResponse.getAbstractSyntaxTree());
         } else {
             Assert.assertNull(expectedSyncQueryResponse.getAbstractSyntaxTree());
         }
-
         if (request.isShowTranslatedExpressionTree()) {
             Assert.assertNotNull(expectedSyncQueryResponse.getTranslatedExpressionTree());
         } else {
             Assert.assertNull(expectedSyncQueryResponse.getTranslatedExpressionTree());
         }
-
         if (request.isShowOptimizedExpressionTree()) {
             Assert.assertNotNull(expectedSyncQueryResponse.getOptimizedExpressionTree());
         } else {
             Assert.assertNull(expectedSyncQueryResponse.getOptimizedExpressionTree());
         }
-
         if (request.isShowRuntimePlan()) {
             Assert.assertNotNull(expectedSyncQueryResponse.getRuntimePlan());
         } else {
             Assert.assertNull(expectedSyncQueryResponse.getRuntimePlan());
         }
 
-        checkMetrics(expectedSyncQueryResponse, request.isShowMetrics());
-
         //Testing the accuracy of REST server and servlets
         SyncQueryResponse actualSyncQueryResponse = getQueryResponse(queryEndpointUri, contentType);
+
         Assert.assertNotNull(actualSyncQueryResponse.getRequestId());
         Assert.assertEquals(request.getStatement(), actualSyncQueryResponse.getStatement());
         Assert.assertEquals(Status.SUCCESS.toString(), actualSyncQueryResponse.getStatus());
         checkMetrics(actualSyncQueryResponse, request.isShowMetrics());
-
+        checkResults(actualSyncQueryResponse, request.isCompileOnly());
         // Cannot check this because Runtime plan include some object IDs which differ
         // Assert.assertEquals(expectedSyncQueryResponse.getRuntimePlan(), actualSyncQueryResponse.getRuntimePlan());
         if (request.isShowRuntimePlan()) {
@@ -162,7 +183,6 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
         } else {
             Assert.assertNull(actualSyncQueryResponse.getRuntimePlan());
         }
-
         Assert.assertEquals(normalize(expectedSyncQueryResponse.getOptimizedExpressionTree()), normalize(actualSyncQueryResponse.getOptimizedExpressionTree()));
         Assert.assertEquals(normalize(expectedSyncQueryResponse.getTranslatedExpressionTree()), normalize(actualSyncQueryResponse.getTranslatedExpressionTree()));
         Assert.assertEquals(normalize(expectedSyncQueryResponse.getAbstractSyntaxTree()), normalize(actualSyncQueryResponse.getAbstractSyntaxTree()));
@@ -171,10 +191,11 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
          * ========== Query Result Response Testing ========
          */
         String expectedResults = expectedSyncQueryResponse.getResults();
-        Assert.assertNotNull(expectedResults);
-
         String actualResults = actualSyncQueryResponse.getResults();
-        Assert.assertNotNull(actualResults);
+        if (!request.isCompileOnly()) {
+            Assert.assertNotNull(expectedResults);
+            Assert.assertNotNull(actualResults);
+        }
         Assert.assertEquals(normalize(expectedResults), normalize(actualResults));
     }
 
@@ -193,11 +214,15 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
 
         try {
             HttpGet request = new HttpGet(uri);
-            request.setHeader(HttpHeaders.ACCEPT, accepts);
+            if (accepts != null) {
+                request.setHeader(HttpHeaders.ACCEPT, accepts);
+            }
 
             try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
                 Assert.assertEquals(HttpResponseStatus.OK.code(), httpResponse.getStatusLine().getStatusCode());
-                Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                if (accepts != null) {
+                    Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                }
 
                 HttpEntity entity = httpResponse.getEntity();
                 Assert.assertNotNull(entity);

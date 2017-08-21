@@ -59,8 +59,10 @@ public class APIResponse {
         QueryResponse response;
         if (request.isAsync()) {
             AsyncQueryResponse asyncQueryResponse = new AsyncQueryResponse();
-            asyncQueryResponse.setResultId(resultSetId.getId());
-            asyncQueryResponse.setResultUrl(RESULT_URL_PREFIX + resultSetId.getId());
+            if (!request.isCompileOnly()) {
+                asyncQueryResponse.setResultId(resultSetId.getId());
+                asyncQueryResponse.setResultUrl(RESULT_URL_PREFIX + resultSetId.getId());
+            }
             response = asyncQueryResponse;
         } else {
             response = new SyncQueryResponse();

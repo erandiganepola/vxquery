@@ -58,33 +58,61 @@ public class RestUtils {
     }
 
     public static URI buildQueryURI(QueryRequest request, String restIpAddress, int restPort) throws URISyntaxException {
-        return new URIBuilder()
-                       .setScheme("http")
-                       .setHost(restIpAddress)
-                       .setPort(restPort)
-                       .setPath(QUERY_ENDPOINT)
-                       .addParameter(STATEMENT, request.getStatement())
-                       .addParameter(COMPILE_ONLY, String.valueOf(request.isCompileOnly()))
-                       .addParameter(OPTIMIZATION, String.valueOf(request.getOptimization()))
-                       .addParameter(FRAME_SIZE, String.valueOf(request.getFrameSize()))
-                       .addParameter(REPEAT_EXECUTIONS, String.valueOf(request.getRepeatExecutions()))
-                       .addParameter(METRICS, String.valueOf(request.isShowMetrics()))
-                       .addParameter(SHOW_AST, String.valueOf(request.isShowAbstractSyntaxTree()))
-                       .addParameter(SHOW_TET, String.valueOf(request.isShowTranslatedExpressionTree()))
-                       .addParameter(SHOW_OET, String.valueOf(request.isShowOptimizedExpressionTree()))
-                       .addParameter(SHOW_RP, String.valueOf(request.isShowRuntimePlan()))
-                       .addParameter(MODE, request.isAsync() ? MODE_ASYNC : MODE_SYNC)
-                       .build();
+        URIBuilder builder = new URIBuilder().setScheme("http")
+                                     .setHost(restIpAddress)
+                                     .setPort(restPort)
+                                     .setPath(QUERY_ENDPOINT);
+
+        if (request.getStatement() != null) {
+            builder.addParameter(STATEMENT, request.getStatement());
+        }
+        if (request.isCompileOnly()) {
+            builder.addParameter(COMPILE_ONLY, String.valueOf(request.isCompileOnly()));
+        }
+        if (request.getOptimization() != QueryRequest.DEFAULT_OPTIMIZATION) {
+            builder.addParameter(OPTIMIZATION, String.valueOf(request.getOptimization()));
+        }
+        if (request.getFrameSize() != QueryRequest.DEFAULT_FRAMESIZE) {
+            builder.addParameter(FRAME_SIZE, String.valueOf(request.getFrameSize()));
+        }
+        if (request.getRepeatExecutions() != 1) {
+            builder.addParameter(REPEAT_EXECUTIONS, String.valueOf(request.getRepeatExecutions()));
+        }
+        if (request.isShowMetrics()) {
+            builder.addParameter(METRICS, String.valueOf(request.isShowMetrics()));
+        }
+        if (request.isShowAbstractSyntaxTree()) {
+            builder.addParameter(SHOW_AST, String.valueOf(request.isShowAbstractSyntaxTree()));
+        }
+        if (request.isShowTranslatedExpressionTree()) {
+            builder.addParameter(SHOW_TET, String.valueOf(request.isShowTranslatedExpressionTree()));
+        }
+        if (request.isShowOptimizedExpressionTree()) {
+            builder.addParameter(SHOW_OET, String.valueOf(request.isShowOptimizedExpressionTree()));
+        }
+        if (request.isShowRuntimePlan()) {
+            builder.addParameter(SHOW_RP, String.valueOf(request.isShowRuntimePlan()));
+        }
+        if (!request.isAsync()) {
+            builder.addParameter(MODE, request.isAsync() ? MODE_ASYNC : MODE_SYNC);
+        }
+
+        return builder.build();
     }
 
-    public static URI buildQueryResultURI(QueryResultRequest resultRequest, String restIpAddress, int restPort) throws URISyntaxException {
-        return new URIBuilder()
-                       .setScheme("http")
-                       .setHost(restIpAddress)
-                       .setPort(restPort)
-                       .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultRequest.getResultId())))
-                       .setParameter(METRICS, String.valueOf(resultRequest.isShowMetrics()))
-                       .build();
+    public static URI buildQueryResultURI(QueryResultRequest resultRequest, String restIpAddress,
+                                          int restPort) throws URISyntaxException {
+        URIBuilder builder = new URIBuilder()
+                                     .setScheme("http")
+                                     .setHost(restIpAddress)
+                                     .setPort(restPort)
+                                     .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultRequest.getResultId())));
+
+        if (resultRequest.isShowMetrics()) {
+            builder.setParameter(METRICS, String.valueOf(resultRequest.isShowMetrics()));
+        }
+
+        return builder.build();
     }
 
     public static String readEntity(HttpEntity entity) throws IOException {
@@ -101,6 +129,10 @@ public class RestUtils {
     }
 
     public static <T> T mapEntity(String entity, Class<T> type, String contentType) throws IOException, JAXBException {
+        if (contentType == null) {
+            contentType = CONTENT_TYPE_JSON;
+        }
+
         switch (contentType) {
             case CONTENT_TYPE_XML:
                 JAXBContext jaxbContext = JAXBContext.newInstance(type);
