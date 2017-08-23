@@ -17,24 +17,15 @@
 
 package org.apache.vxquery.rest;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.request.QueryRequest;
-import org.apache.vxquery.rest.response.AsyncQueryResponse;
 import org.apache.vxquery.rest.response.SyncQueryResponse;
 import org.apache.vxquery.rest.service.Status;
 import org.junit.Assert;
 import org.junit.Test;
 
+import javax.ws.rs.HttpMethod;
 import java.net.URI;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
@@ -130,6 +121,11 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
     }
 
     private void runTest(String contentType, QueryRequest request) throws Exception {
+        runTest(contentType, request, HttpMethod.GET);
+        runTest(contentType, request, HttpMethod.POST);
+    }
+
+    private void runTest(String contentType, QueryRequest request, String httpMethod) throws Exception {
         URI queryEndpointUri = RestUtils.buildQueryURI(request, restIpAddress, restPort);
 
         /*
@@ -169,7 +165,8 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
         }
 
         //Testing the accuracy of REST server and servlets
-        SyncQueryResponse actualSyncQueryResponse = getQueryResponse(queryEndpointUri, contentType);
+        SyncQueryResponse actualSyncQueryResponse = getQuerySuccessResponse(queryEndpointUri, contentType,
+                SyncQueryResponse.class, httpMethod);
 
         Assert.assertNotNull(actualSyncQueryResponse.getRequestId());
         Assert.assertEquals(request.getStatement(), actualSyncQueryResponse.getStatement());
@@ -197,41 +194,5 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
             Assert.assertNotNull(actualResults);
         }
         Assert.assertEquals(normalize(expectedResults), normalize(actualResults));
-    }
-
-    /**
-     * Submit a {@link QueryRequest} and fetth the resulting {@link AsyncQueryResponse}
-     *
-     * @param uri     uri of the GET request
-     * @param accepts application/json | application/xml
-     * @return Response received for the query request
-     * @throws Exception
-     */
-    private static SyncQueryResponse getQueryResponse(URI uri, String accepts) throws Exception {
-        CloseableHttpClient httpClient = HttpClients.custom()
-                                                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
-                                                 .build();
-
-        try {
-            HttpGet request = new HttpGet(uri);
-            if (accepts != null) {
-                request.setHeader(HttpHeaders.ACCEPT, accepts);
-            }
-
-            try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
-                Assert.assertEquals(HttpResponseStatus.OK.code(), httpResponse.getStatusLine().getStatusCode());
-                if (accepts != null) {
-                    Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
-                }
-
-                HttpEntity entity = httpResponse.getEntity();
-                Assert.assertNotNull(entity);
-
-                String response = RestUtils.readEntity(entity);
-                return RestUtils.mapEntity(response, SyncQueryResponse.class, accepts);
-            }
-        } finally {
-            HttpClientUtils.closeQuietly(httpClient);
-        }
     }
 }

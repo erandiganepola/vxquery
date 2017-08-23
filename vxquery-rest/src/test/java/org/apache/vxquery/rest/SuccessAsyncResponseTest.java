@@ -17,14 +17,6 @@
 
 package org.apache.vxquery.rest;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpHeaders;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.utils.HttpClientUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.app.util.RestUtils;
 import org.apache.vxquery.rest.request.QueryRequest;
 import org.apache.vxquery.rest.request.QueryResultRequest;
@@ -36,8 +28,8 @@ import org.apache.vxquery.rest.service.Status;
 import org.junit.Assert;
 import org.junit.Test;
 
+import javax.ws.rs.HttpMethod;
 import java.net.URI;
-import java.util.concurrent.TimeUnit;
 
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_JSON;
 import static org.apache.vxquery.rest.Constants.HttpHeaderValues.CONTENT_TYPE_XML;
@@ -197,6 +189,11 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
     }
 
     private void runTest(String contentType, QueryRequest request) throws Exception {
+        runTest(contentType, request, HttpMethod.GET);
+        runTest(contentType, request, HttpMethod.POST);
+    }
+
+    private void runTest(String contentType, QueryRequest request, String httpMethod) throws Exception {
         URI queryEndpointUri = RestUtils.buildQueryURI(request, restIpAddress, restPort);
 
         /*
@@ -236,7 +233,8 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
         }
 
         //Testing the accuracy of REST server and servlets
-        AsyncQueryResponse actualAsyncQueryResponse = getQueryResponse(queryEndpointUri, contentType);
+        AsyncQueryResponse actualAsyncQueryResponse = getQuerySuccessResponse(queryEndpointUri, contentType,
+                AsyncQueryResponse.class, httpMethod);
 
         Assert.assertNotNull(actualAsyncQueryResponse.getRequestId());
         Assert.assertEquals(request.getStatement(), actualAsyncQueryResponse.getStatement());
@@ -250,9 +248,12 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
         } else {
             Assert.assertNull(actualAsyncQueryResponse.getRuntimePlan());
         }
-        Assert.assertEquals(normalize(expectedAsyncQueryResponse.getOptimizedExpressionTree()), normalize(actualAsyncQueryResponse.getOptimizedExpressionTree()));
-        Assert.assertEquals(normalize(expectedAsyncQueryResponse.getTranslatedExpressionTree()), normalize(actualAsyncQueryResponse.getTranslatedExpressionTree()));
-        Assert.assertEquals(normalize(expectedAsyncQueryResponse.getAbstractSyntaxTree()), normalize(actualAsyncQueryResponse.getAbstractSyntaxTree()));
+        Assert.assertEquals(normalize(expectedAsyncQueryResponse.getOptimizedExpressionTree()),
+                normalize(actualAsyncQueryResponse.getOptimizedExpressionTree()));
+        Assert.assertEquals(normalize(expectedAsyncQueryResponse.getTranslatedExpressionTree()),
+                normalize(actualAsyncQueryResponse.getTranslatedExpressionTree()));
+        Assert.assertEquals(normalize(expectedAsyncQueryResponse.getAbstractSyntaxTree()),
+                normalize(actualAsyncQueryResponse.getAbstractSyntaxTree()));
 
 
         /*
@@ -269,92 +270,18 @@ public class SuccessAsyncResponseTest extends AbstractRestServerTest {
             Assert.assertEquals(expectedResultResponse.getStatus(), Status.SUCCESS.toString());
             Assert.assertNotNull(expectedResultResponse.getResults());
 
-            QueryResultResponse actualResultResponse = getQueryResultResponse(resultRequest, contentType);
+            QueryResultResponse actualResultResponse = getQueryResultResponse(resultRequest, contentType, httpMethod);
             Assert.assertEquals(actualResultResponse.getStatus(), Status.SUCCESS.toString());
             Assert.assertNotNull(actualResultResponse.getResults());
             Assert.assertNotNull(actualResultResponse.getRequestId());
-            Assert.assertEquals(normalize(expectedResultResponse.getResults()), normalize(actualResultResponse.getResults()));
+            Assert.assertEquals(normalize(expectedResultResponse.getResults()),
+                    normalize(actualResultResponse.getResults()));
             if (resultRequest.isShowMetrics()) {
                 Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() > 0);
             } else {
                 Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() == 0);
             }
 
-        }
-    }
-
-    /**
-     * Submit a {@link QueryRequest} and fetth the resulting {@link AsyncQueryResponse}
-     *
-     * @param uri     uri of the GET request
-     * @param accepts application/json | application/xml
-     * @return Response received for the query request
-     * @throws Exception
-     */
-    private static AsyncQueryResponse getQueryResponse(URI uri, String accepts) throws Exception {
-        CloseableHttpClient httpClient = HttpClients.custom()
-                                                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
-                                                 .build();
-
-        try {
-            HttpGet request = new HttpGet(uri);
-            if (accepts != null) {
-                request.setHeader(HttpHeaders.ACCEPT, accepts);
-            }
-
-            try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
-                Assert.assertEquals(HttpResponseStatus.OK.code(), httpResponse.getStatusLine().getStatusCode());
-                if (accepts != null) {
-                    Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
-                }
-
-                HttpEntity entity = httpResponse.getEntity();
-                Assert.assertNotNull(entity);
-
-                String response = RestUtils.readEntity(entity);
-                return RestUtils.mapEntity(response, AsyncQueryResponse.class, accepts);
-            }
-        } finally {
-            HttpClientUtils.closeQuietly(httpClient);
-        }
-    }
-
-    /**
-     * Fetch the {@link QueryResultResponse} from query result endpoint once the corresponding {@link
-     * QueryResultRequest} is given.
-     *
-     * @param resultRequest {@link QueryResultRequest}
-     * @param accepts       expected <pre>Accepts</pre> header in responses
-     * @return query result reponse received
-     * @throws Exception
-     */
-    private static QueryResultResponse getQueryResultResponse(QueryResultRequest resultRequest, String accepts) throws Exception {
-        URI queryResultEndpointUri = RestUtils.buildQueryResultURI(resultRequest, restIpAddress, restPort);
-
-        CloseableHttpClient httpClient = HttpClients.custom()
-                                                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
-                                                 .build();
-
-        try {
-            HttpGet request = new HttpGet(queryResultEndpointUri);
-            if (accepts != null) {
-                request.setHeader(HttpHeaders.ACCEPT, accepts);
-            }
-
-            try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
-                if (accepts != null) {
-                    Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
-                }
-                Assert.assertEquals(httpResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
-
-                HttpEntity entity = httpResponse.getEntity();
-                Assert.assertNotNull(entity);
-
-                String response = RestUtils.readEntity(entity);
-                return RestUtils.mapEntity(response, QueryResultResponse.class, accepts);
-            }
-        } finally {
-            HttpClientUtils.closeQuietly(httpClient);
         }
     }
 }

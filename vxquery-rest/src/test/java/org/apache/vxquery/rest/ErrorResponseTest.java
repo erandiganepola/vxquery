@@ -20,7 +20,7 @@ package org.apache.vxquery.rest;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -31,6 +31,7 @@ import org.apache.vxquery.rest.response.ErrorResponse;
 import org.junit.Assert;
 import org.junit.Test;
 
+import javax.ws.rs.HttpMethod;
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
 
@@ -160,16 +161,21 @@ public class ErrorResponseTest extends AbstractRestServerTest {
     }
 
     private void runTest(URI uri, String accepts, int expectedStatusCode) throws Exception {
+        runTest(uri, accepts, expectedStatusCode, HttpMethod.GET);
+        runTest(uri, accepts, expectedStatusCode, HttpMethod.POST);
+    }
+
+    private void runTest(URI uri, String accepts, int expectedStatusCode, String httpMethod) throws Exception {
         CloseableHttpClient httpClient = HttpClients.custom().setConnectionTimeToLive(20, TimeUnit.SECONDS).build();
 
         ErrorResponse errorResponse;
         try {
-            HttpGet httpGet = new HttpGet(uri);
+            HttpUriRequest request = getRequest(uri, httpMethod);
             if (accepts != null) {
-                httpGet.setHeader(HttpHeaders.ACCEPT, accepts);
+                request.setHeader(HttpHeaders.ACCEPT, accepts);
             }
 
-            try (CloseableHttpResponse httpResponse = httpClient.execute(httpGet)) {
+            try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
                 Assert.assertEquals(expectedStatusCode, httpResponse.getStatusLine().getStatusCode());
                 if (accepts != null) {
                     Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());

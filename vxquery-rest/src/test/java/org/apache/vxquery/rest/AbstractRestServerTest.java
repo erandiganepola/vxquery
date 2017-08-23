@@ -17,16 +17,34 @@
 
 package org.apache.vxquery.rest;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpHeaders;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.utils.HttpClientUtils;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.vxquery.app.VXQueryApplication;
 import org.apache.vxquery.app.util.LocalClusterUtil;
+import org.apache.vxquery.app.util.RestUtils;
+import org.apache.vxquery.rest.request.QueryRequest;
+import org.apache.vxquery.rest.request.QueryResultRequest;
 import org.apache.vxquery.rest.response.AsyncQueryResponse;
 import org.apache.vxquery.rest.response.QueryResponse;
+import org.apache.vxquery.rest.response.QueryResultResponse;
 import org.apache.vxquery.rest.response.SyncQueryResponse;
 import org.apache.vxquery.rest.service.VXQueryConfig;
 import org.apache.vxquery.rest.service.VXQueryService;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+
+import javax.ws.rs.HttpMethod;
+import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract test class to be used for {@link VXQueryApplication} related tests. These tests are expected to use the REST
@@ -89,5 +107,104 @@ public class AbstractRestServerTest {
             Assert.assertNotNull(response.getResults());
             Assert.assertFalse(response.getResults().isEmpty());
         }
+    }
+
+    /**
+     * Submit a {@link QueryRequest} and fetth the resulting {@link AsyncQueryResponse}
+     *
+     * @param uri     uri of the GET request
+     * @param accepts application/json | application/xml
+     * @param method  Http Method to be used to send the request
+     * @return Response received for the query request
+     * @throws Exception
+     */
+    protected static <T> T getQuerySuccessResponse(URI uri, String accepts, Class<T> type, String method) throws Exception {
+        CloseableHttpClient httpClient = HttpClients.custom()
+                                                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
+                                                 .build();
+
+        try {
+            HttpUriRequest request = getRequest(uri, method);
+
+            if (accepts != null) {
+                request.setHeader(HttpHeaders.ACCEPT, accepts);
+            }
+
+            try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
+                Assert.assertEquals(HttpResponseStatus.OK.code(), httpResponse.getStatusLine().getStatusCode());
+                if (accepts != null) {
+                    Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                }
+
+                HttpEntity entity = httpResponse.getEntity();
+                Assert.assertNotNull(entity);
+
+                String response = RestUtils.readEntity(entity);
+                return RestUtils.mapEntity(response, type, accepts);
+            }
+        } finally {
+            HttpClientUtils.closeQuietly(httpClient);
+        }
+    }
+
+    /**
+     * Fetch the {@link QueryResultResponse} from query result endpoint once the corresponding {@link
+     * QueryResultRequest} is given.
+     *
+     * @param resultRequest {@link QueryResultRequest}
+     * @param accepts       expected <pre>Accepts</pre> header in responses
+     * @param method        Http Method to be used to send the request
+     * @return query result response received
+     * @throws Exception
+     */
+    protected static QueryResultResponse getQueryResultResponse(QueryResultRequest resultRequest, String accepts,
+                                                                String method) throws Exception {
+        URI uri = RestUtils.buildQueryResultURI(resultRequest, restIpAddress, restPort);
+        CloseableHttpClient httpClient = HttpClients.custom()
+                                                 .setConnectionTimeToLive(20, TimeUnit.SECONDS)
+                                                 .build();
+        try {
+            HttpUriRequest request = getRequest(uri, method);
+
+            if (accepts != null) {
+                request.setHeader(HttpHeaders.ACCEPT, accepts);
+            }
+
+            try (CloseableHttpResponse httpResponse = httpClient.execute(request)) {
+                if (accepts != null) {
+                    Assert.assertEquals(accepts, httpResponse.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
+                }
+                Assert.assertEquals(httpResponse.getStatusLine().getStatusCode(), HttpResponseStatus.OK.code());
+
+                HttpEntity entity = httpResponse.getEntity();
+                Assert.assertNotNull(entity);
+
+                String response = RestUtils.readEntity(entity);
+                return RestUtils.mapEntity(response, QueryResultResponse.class, accepts);
+            }
+        } finally {
+            HttpClientUtils.closeQuietly(httpClient);
+        }
+    }
+
+    /**
+     * Creates a POST or GET request accordingly from the given {@link URI}
+     *
+     * @param uri    URI to which the request us to be sent
+     * @param method Http method- GET or POST
+     * @return request
+     */
+    protected static HttpUriRequest getRequest(URI uri, String method) {
+        HttpUriRequest request;
+        switch (method) {
+            case HttpMethod.POST:
+                request = new HttpPost(uri);
+                break;
+            case HttpMethod.GET:
+            default:
+                request = new HttpGet(uri);
+        }
+
+        return request;
     }
 }
