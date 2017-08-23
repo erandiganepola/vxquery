@@ -224,32 +224,41 @@ public class VXQueryService {
 
         HyracksJobContext hyracksJobContext;
         start = new Date();
-        try {
-            JobId jobId = hyracksClientConnection.startJob(js, EnumSet.of(JobFlag.PROFILE_RUNTIME));
-            hyracksJobContext = new HyracksJobContext(jobId, js.getFrameSize(), resultSetId);
-        } catch (Exception e) {
-            LOGGER.log(SEVERE, "Error occurred when submitting job to hyracks for query: " + query, e);
-            return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(UNFORSEEN_PROBLEM)
-                                                                                .withMessage("Error occurred when starting hyracks job")
-                                                                                .build());
-        }
+        if (!request.isAsync()) {
+            for (int i = 0; i < request.getRepeatExecutions(); i++) {
+                try {
+                    hyracksJobContext = executeJob(js, resultSetId, request);
 
-        if (request.isAsync()) {
-            jobContexts.put(resultSetId.getId(), hyracksJobContext);
+                } catch (Exception e) {
+                    LOGGER.log(SEVERE, "Error occurred when submitting job to hyracks for query: " + query, e);
+                    return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(UNFORSEEN_PROBLEM)
+                                                                                        .withMessage("Error occurred when starting hyracks job")
+                                                                                        .build());
+                }
+                try {
+                    String results = readResults(hyracksJobContext);
+                    ((SyncQueryResponse) response).setResults(results);
+                } catch (HyracksException e) {
+                    LOGGER.log(Level.SEVERE, "Error occurred when reading results", e);
+                    SystemException se = getSystemException(e);
+                    return APIResponse.newErrorResponse(request.getRequestId(),
+                            new Error(UNFORSEEN_PROBLEM, String.format("Error occurred when reading results: %s", se != null ? se.getCode() : "")));
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error occurred when reading results", e);
+                    return APIResponse.newErrorResponse(request.getRequestId(),
+                            new Error(UNFORSEEN_PROBLEM, "Error occurred when reading results: " + e.getMessage()));
+                }
+            }
         } else {
             try {
-                String results = readResults(hyracksJobContext);
-                ((SyncQueryResponse) response).setResults(results);
-            } catch (HyracksException e) {
-                LOGGER.log(Level.SEVERE, "Error occurred when reading results", e);
-                SystemException se = getSystemException(e);
-                return APIResponse.newErrorResponse(request.getRequestId(),
-                        new Error(UNFORSEEN_PROBLEM, String.format("Error occurred when reading results: %s", se != null ? se.getCode() : "")));
+                hyracksJobContext = executeJob(js, resultSetId, request);
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error occurred when reading results", e);
-                return APIResponse.newErrorResponse(request.getRequestId(),
-                        new Error(UNFORSEEN_PROBLEM, "Error occurred when reading results: " + e.getMessage()));
+                LOGGER.log(SEVERE, "Error occurred when submitting job to hyracks for query: " + query, e);
+                return APIResponse.newErrorResponse(request.getRequestId(), Error.builder().withCode(UNFORSEEN_PROBLEM)
+                                                                                    .withMessage("Error occurred when starting hyracks job")
+                                                                                    .build());
             }
+            jobContexts.put(resultSetId.getId(), hyracksJobContext);
         }
 
         if (request.isShowMetrics()) {
@@ -257,6 +266,14 @@ public class VXQueryService {
         }
 
         return response;
+    }
+
+    private HyracksJobContext executeJob(JobSpecification js, ResultSetId resultSetId, QueryRequest request) throws Exception {
+        HyracksJobContext hyracksJobContext;
+        JobId jobId = hyracksClientConnection.startJob(js, EnumSet.of(JobFlag.PROFILE_RUNTIME));
+        hyracksJobContext = new HyracksJobContext(jobId, js.getFrameSize(), resultSetId);
+
+        return hyracksJobContext;
     }
 
     private static SystemException getSystemException(HyracksException e) {
@@ -280,8 +297,6 @@ public class VXQueryService {
         }
         return null;
     }
-
-    // TODO: 7/12/17 Allow multiple executions of the same query
 
     /**
      * Returns the query results for a given result set id.

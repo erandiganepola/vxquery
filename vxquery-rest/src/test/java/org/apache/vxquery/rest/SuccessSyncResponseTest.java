@@ -120,6 +120,17 @@ public class SuccessSyncResponseTest extends AbstractRestServerTest {
         runTest(CONTENT_TYPE_XML, request);
     }
 
+    @Test
+    public void testSingleParameterRepeatExecutions() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setRepeatExecutions(5);
+        request.setAsync(false);
+
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
+
     private void runTest(String contentType, QueryRequest request) throws Exception {
         runTest(contentType, request, HttpMethod.GET);
         runTest(contentType, request, HttpMethod.POST);
