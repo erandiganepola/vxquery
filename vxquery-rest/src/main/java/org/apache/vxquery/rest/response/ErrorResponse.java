@@ -40,17 +40,17 @@ import org.apache.vxquery.rest.service.Status;
 @XmlRootElement
 public class ErrorResponse extends APIResponse {
 
-	private Error error;
+    private Error error;
 
-	public ErrorResponse() {
-		super(Status.FATAL.toString());
-	}
+    public ErrorResponse() {
+        super(Status.FATAL.toString());
+    }
 
-	public Error getError() {
-		return error;
-	}
+    public Error getError() {
+        return error;
+    }
 
-	public void setError(Error error) {
-		this.error = error;
-	}
+    public void setError(Error error) {
+        this.error = error;
+    }
 }

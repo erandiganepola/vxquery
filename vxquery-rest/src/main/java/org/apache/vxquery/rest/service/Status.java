@@ -36,15 +36,16 @@ package org.apache.vxquery.rest.service;
  * @author Erandi Ganepola
  */
 public enum Status {
-	SUCCESS("success"), FATAL("fatal");
+    SUCCESS("success"),
+    FATAL("fatal");
 
-	private final String name;
+    private final String name;
 
-	Status(String name) {
-		this.name = name;
-	}
+    Status(String name) {
+        this.name = name;
+    }
 
-	public String toString() {
-		return name;
-	}
+    public String toString() {
+        return name;
+    }
 }

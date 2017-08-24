@@ -27,62 +27,62 @@ import org.apache.vxquery.rest.service.Status;
  */
 public class QueryResponse extends APIResponse {
 
-	private String statement;
-	private String abstractSyntaxTree;
-	private String translatedExpressionTree;
-	private String optimizedExpressionTree;
-	private String runtimePlan;
-	private Metrics metrics = new Metrics();
+    private String statement;
+    private String abstractSyntaxTree;
+    private String translatedExpressionTree;
+    private String optimizedExpressionTree;
+    private String runtimePlan;
+    private Metrics metrics = new Metrics();
 
-	public QueryResponse() {
-		super(Status.SUCCESS.toString());
-	}
+    public QueryResponse() {
+        super(Status.SUCCESS.toString());
+    }
 
-	public String getStatement() {
-		return statement;
-	}
+    public String getStatement() {
+        return statement;
+    }
 
-	public void setStatement(String statement) {
-		this.statement = statement;
-	}
+    public void setStatement(String statement) {
+        this.statement = statement;
+    }
 
-	public String getAbstractSyntaxTree() {
-		return abstractSyntaxTree;
-	}
+    public String getAbstractSyntaxTree() {
+        return abstractSyntaxTree;
+    }
 
-	public void setAbstractSyntaxTree(String abstractSyntaxTree) {
-		this.abstractSyntaxTree = abstractSyntaxTree;
-	}
+    public void setAbstractSyntaxTree(String abstractSyntaxTree) {
+        this.abstractSyntaxTree = abstractSyntaxTree;
+    }
 
-	public String getTranslatedExpressionTree() {
-		return translatedExpressionTree;
-	}
+    public String getTranslatedExpressionTree() {
+        return translatedExpressionTree;
+    }
 
-	public void setTranslatedExpressionTree(String translatedExpressionTree) {
-		this.translatedExpressionTree = translatedExpressionTree;
-	}
+    public void setTranslatedExpressionTree(String translatedExpressionTree) {
+        this.translatedExpressionTree = translatedExpressionTree;
+    }
 
-	public String getOptimizedExpressionTree() {
-		return optimizedExpressionTree;
-	}
+    public String getOptimizedExpressionTree() {
+        return optimizedExpressionTree;
+    }
 
-	public void setOptimizedExpressionTree(String optimizedExpressionTree) {
-		this.optimizedExpressionTree = optimizedExpressionTree;
-	}
+    public void setOptimizedExpressionTree(String optimizedExpressionTree) {
+        this.optimizedExpressionTree = optimizedExpressionTree;
+    }
 
-	public String getRuntimePlan() {
-		return runtimePlan;
-	}
+    public String getRuntimePlan() {
+        return runtimePlan;
+    }
 
-	public void setRuntimePlan(String runtimePlan) {
-		this.runtimePlan = runtimePlan;
-	}
+    public void setRuntimePlan(String runtimePlan) {
+        this.runtimePlan = runtimePlan;
+    }
 
-	public Metrics getMetrics() {
-		return metrics;
-	}
+    public Metrics getMetrics() {
+        return metrics;
+    }
 
-	public void setMetrics(Metrics metrics) {
-		this.metrics = metrics;
-	}
+    public void setMetrics(Metrics metrics) {
+        this.metrics = metrics;
+    }
 }

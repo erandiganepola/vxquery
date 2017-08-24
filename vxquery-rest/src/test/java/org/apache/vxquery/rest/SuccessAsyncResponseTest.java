@@ -45,245 +45,245 @@ import org.junit.Test;
  */
 public class SuccessAsyncResponseTest extends AbstractRestServerTest {
 
-	@Test
-	public void testSimpleQuery001() throws Exception {
-		QueryRequest request = new QueryRequest("1+1");
-		request.setShowAbstractSyntaxTree(true);
-		request.setShowOptimizedExpressionTree(true);
-		request.setShowRuntimePlan(true);
-		request.setShowTranslatedExpressionTree(true);
-		request.setShowMetrics(false);
+    @Test
+    public void testSimpleQuery001() throws Exception {
+        QueryRequest request = new QueryRequest("1+1");
+        request.setShowAbstractSyntaxTree(true);
+        request.setShowOptimizedExpressionTree(true);
+        request.setShowRuntimePlan(true);
+        request.setShowTranslatedExpressionTree(true);
+        request.setShowMetrics(false);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSimpleQuery002() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
-		request.setShowAbstractSyntaxTree(true);
-		request.setShowOptimizedExpressionTree(true);
-		request.setShowRuntimePlan(true);
-		request.setShowTranslatedExpressionTree(true);
-		request.setShowMetrics(true);
+    @Test
+    public void testSimpleQuery002() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowAbstractSyntaxTree(true);
+        request.setShowOptimizedExpressionTree(true);
+        request.setShowRuntimePlan(true);
+        request.setShowTranslatedExpressionTree(true);
+        request.setShowMetrics(true);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSimpleQuery003() throws Exception {
-		QueryRequest request = new QueryRequest("1+2+3");
-		request.setShowAbstractSyntaxTree(false);
-		request.setShowOptimizedExpressionTree(false);
-		request.setShowRuntimePlan(false);
-		request.setShowTranslatedExpressionTree(false);
-		request.setShowMetrics(false);
+    @Test
+    public void testSimpleQuery003() throws Exception {
+        QueryRequest request = new QueryRequest("1+2+3");
+        request.setShowAbstractSyntaxTree(false);
+        request.setShowOptimizedExpressionTree(false);
+        request.setShowRuntimePlan(false);
+        request.setShowTranslatedExpressionTree(false);
+        request.setShowMetrics(false);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSimpleQuery004() throws Exception {
-		QueryRequest request = new QueryRequest("fn:true()");
-		request.setShowAbstractSyntaxTree(false);
-		request.setShowOptimizedExpressionTree(false);
-		request.setShowRuntimePlan(true);
-		request.setShowTranslatedExpressionTree(false);
-		request.setShowMetrics(false);
+    @Test
+    public void testSimpleQuery004() throws Exception {
+        QueryRequest request = new QueryRequest("fn:true()");
+        request.setShowAbstractSyntaxTree(false);
+        request.setShowOptimizedExpressionTree(false);
+        request.setShowRuntimePlan(true);
+        request.setShowTranslatedExpressionTree(false);
+        request.setShowMetrics(false);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSingleParameterNone() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+    @Test
+    public void testSingleParameterNone() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSingleParameterMetrics() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
-		request.setShowMetrics(true);
+    @Test
+    public void testSingleParameterMetrics() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowMetrics(true);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSingleParameterAST() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
-		request.setShowAbstractSyntaxTree(true);
+    @Test
+    public void testSingleParameterAST() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowAbstractSyntaxTree(true);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSingleParameterOptimization() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
-		request.setOptimization(10000);
+    @Test
+    public void testSingleParameterOptimization() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setOptimization(10000);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSingleParameterFrameSize() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
-		request.setFrameSize((int) Math.pow(2, 12));
+    @Test
+    public void testSingleParameterFrameSize() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setFrameSize((int) Math.pow(2, 12));
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSingleParameterCompileOnly() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
-		request.setCompileOnly(true);
+    @Test
+    public void testSingleParameterCompileOnly() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setCompileOnly(true);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSingleParameterOET() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
-		request.setShowOptimizedExpressionTree(true);
+    @Test
+    public void testSingleParameterOET() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowOptimizedExpressionTree(true);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSingleParameterTET() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
-		request.setShowTranslatedExpressionTree(true);
+    @Test
+    public void testSingleParameterTET() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowTranslatedExpressionTree(true);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	@Test
-	public void testSingleParameterRP() throws Exception {
-		QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
-		request.setShowRuntimePlan(true);
+    @Test
+    public void testSingleParameterRP() throws Exception {
+        QueryRequest request = new QueryRequest("for $x in (1, 2.0, 3) return $x");
+        request.setShowRuntimePlan(true);
 
-		runTest(null, request);
-		runTest(CONTENT_TYPE_JSON, request);
-		runTest(CONTENT_TYPE_XML, request);
-	}
+        runTest(null, request);
+        runTest(CONTENT_TYPE_JSON, request);
+        runTest(CONTENT_TYPE_XML, request);
+    }
 
-	private void runTest(String contentType, QueryRequest request) throws Exception {
-		runTest(contentType, request, HttpMethod.GET);
-		runTest(contentType, request, HttpMethod.POST);
-	}
+    private void runTest(String contentType, QueryRequest request) throws Exception {
+        runTest(contentType, request, HttpMethod.GET);
+        runTest(contentType, request, HttpMethod.POST);
+    }
 
-	private void runTest(String contentType, QueryRequest request, String httpMethod) throws Exception {
-		URI queryEndpointUri = RestUtils.buildQueryURI(request, restIpAddress, restPort);
+    private void runTest(String contentType, QueryRequest request, String httpMethod) throws Exception {
+        URI queryEndpointUri = RestUtils.buildQueryURI(request, restIpAddress, restPort);
 
-		/*
-		 * ========== Query Response Testing ==========
-		 */
-		// Testing the accuracy of VXQueryService class
-		AsyncQueryResponse expectedAsyncQueryResponse = (AsyncQueryResponse) vxQueryService.execute(request);
+        /*
+         * ========== Query Response Testing ==========
+         */
+        // Testing the accuracy of VXQueryService class
+        AsyncQueryResponse expectedAsyncQueryResponse = (AsyncQueryResponse) vxQueryService.execute(request);
 
-		Assert.assertEquals(Status.SUCCESS.toString(), expectedAsyncQueryResponse.getStatus());
-		Assert.assertEquals(request.getStatement(), expectedAsyncQueryResponse.getStatement());
-		checkResults(expectedAsyncQueryResponse, request.isCompileOnly());
-		checkMetrics(expectedAsyncQueryResponse, request.isShowMetrics());
-		if (request.isShowMetrics()) {
-			Assert.assertTrue(expectedAsyncQueryResponse.getMetrics().getCompileTime() > 0);
-		} else {
-			Assert.assertTrue(expectedAsyncQueryResponse.getMetrics().getCompileTime() == 0);
-		}
-		if (request.isShowAbstractSyntaxTree()) {
-			Assert.assertNotNull(expectedAsyncQueryResponse.getAbstractSyntaxTree());
-		} else {
-			Assert.assertNull(expectedAsyncQueryResponse.getAbstractSyntaxTree());
-		}
-		if (request.isShowTranslatedExpressionTree()) {
-			Assert.assertNotNull(expectedAsyncQueryResponse.getTranslatedExpressionTree());
-		} else {
-			Assert.assertNull(expectedAsyncQueryResponse.getTranslatedExpressionTree());
-		}
-		if (request.isShowOptimizedExpressionTree()) {
-			Assert.assertNotNull(expectedAsyncQueryResponse.getOptimizedExpressionTree());
-		} else {
-			Assert.assertNull(expectedAsyncQueryResponse.getOptimizedExpressionTree());
-		}
-		if (request.isShowRuntimePlan()) {
-			Assert.assertNotNull(expectedAsyncQueryResponse.getRuntimePlan());
-		} else {
-			Assert.assertNull(expectedAsyncQueryResponse.getRuntimePlan());
-		}
+        Assert.assertEquals(Status.SUCCESS.toString(), expectedAsyncQueryResponse.getStatus());
+        Assert.assertEquals(request.getStatement(), expectedAsyncQueryResponse.getStatement());
+        checkResults(expectedAsyncQueryResponse, request.isCompileOnly());
+        checkMetrics(expectedAsyncQueryResponse, request.isShowMetrics());
+        if (request.isShowMetrics()) {
+            Assert.assertTrue(expectedAsyncQueryResponse.getMetrics().getCompileTime() > 0);
+        } else {
+            Assert.assertTrue(expectedAsyncQueryResponse.getMetrics().getCompileTime() == 0);
+        }
+        if (request.isShowAbstractSyntaxTree()) {
+            Assert.assertNotNull(expectedAsyncQueryResponse.getAbstractSyntaxTree());
+        } else {
+            Assert.assertNull(expectedAsyncQueryResponse.getAbstractSyntaxTree());
+        }
+        if (request.isShowTranslatedExpressionTree()) {
+            Assert.assertNotNull(expectedAsyncQueryResponse.getTranslatedExpressionTree());
+        } else {
+            Assert.assertNull(expectedAsyncQueryResponse.getTranslatedExpressionTree());
+        }
+        if (request.isShowOptimizedExpressionTree()) {
+            Assert.assertNotNull(expectedAsyncQueryResponse.getOptimizedExpressionTree());
+        } else {
+            Assert.assertNull(expectedAsyncQueryResponse.getOptimizedExpressionTree());
+        }
+        if (request.isShowRuntimePlan()) {
+            Assert.assertNotNull(expectedAsyncQueryResponse.getRuntimePlan());
+        } else {
+            Assert.assertNull(expectedAsyncQueryResponse.getRuntimePlan());
+        }
 
-		// Testing the accuracy of REST server and servlets
-		AsyncQueryResponse actualAsyncQueryResponse = getQuerySuccessResponse(queryEndpointUri, contentType,
-				AsyncQueryResponse.class, httpMethod);
+        // Testing the accuracy of REST server and servlets
+        AsyncQueryResponse actualAsyncQueryResponse =
+                getQuerySuccessResponse(queryEndpointUri, contentType, AsyncQueryResponse.class, httpMethod);
 
-		Assert.assertNotNull(actualAsyncQueryResponse.getRequestId());
-		Assert.assertEquals(request.getStatement(), actualAsyncQueryResponse.getStatement());
-		Assert.assertEquals(Status.SUCCESS.toString(), actualAsyncQueryResponse.getStatus());
-		checkResults(actualAsyncQueryResponse, request.isCompileOnly());
-		checkMetrics(actualAsyncQueryResponse, request.isShowMetrics());
-		// Cannot check this because Runtime plan include some object IDs which differ
-		// Assert.assertEquals(expectedAsyncQueryResponse.getRuntimePlan(),
-		// actualAsyncQueryResponse.getRuntimePlan());
-		if (request.isShowRuntimePlan()) {
-			Assert.assertNotNull(actualAsyncQueryResponse.getRuntimePlan());
-		} else {
-			Assert.assertNull(actualAsyncQueryResponse.getRuntimePlan());
-		}
-		Assert.assertEquals(normalize(expectedAsyncQueryResponse.getOptimizedExpressionTree()),
-				normalize(actualAsyncQueryResponse.getOptimizedExpressionTree()));
-		Assert.assertEquals(normalize(expectedAsyncQueryResponse.getTranslatedExpressionTree()),
-				normalize(actualAsyncQueryResponse.getTranslatedExpressionTree()));
-		Assert.assertEquals(normalize(expectedAsyncQueryResponse.getAbstractSyntaxTree()),
-				normalize(actualAsyncQueryResponse.getAbstractSyntaxTree()));
+        Assert.assertNotNull(actualAsyncQueryResponse.getRequestId());
+        Assert.assertEquals(request.getStatement(), actualAsyncQueryResponse.getStatement());
+        Assert.assertEquals(Status.SUCCESS.toString(), actualAsyncQueryResponse.getStatus());
+        checkResults(actualAsyncQueryResponse, request.isCompileOnly());
+        checkMetrics(actualAsyncQueryResponse, request.isShowMetrics());
+        // Cannot check this because Runtime plan include some object IDs which differ
+        // Assert.assertEquals(expectedAsyncQueryResponse.getRuntimePlan(),
+        // actualAsyncQueryResponse.getRuntimePlan());
+        if (request.isShowRuntimePlan()) {
+            Assert.assertNotNull(actualAsyncQueryResponse.getRuntimePlan());
+        } else {
+            Assert.assertNull(actualAsyncQueryResponse.getRuntimePlan());
+        }
+        Assert.assertEquals(normalize(expectedAsyncQueryResponse.getOptimizedExpressionTree()),
+                normalize(actualAsyncQueryResponse.getOptimizedExpressionTree()));
+        Assert.assertEquals(normalize(expectedAsyncQueryResponse.getTranslatedExpressionTree()),
+                normalize(actualAsyncQueryResponse.getTranslatedExpressionTree()));
+        Assert.assertEquals(normalize(expectedAsyncQueryResponse.getAbstractSyntaxTree()),
+                normalize(actualAsyncQueryResponse.getAbstractSyntaxTree()));
 
-		/*
-		 * ========== Query Result Response Testing ========
-		 */
-		QueryResultRequest resultRequest = new QueryResultRequest(actualAsyncQueryResponse.getResultId());
-		resultRequest.setShowMetrics(true);
+        /*
+         * ========== Query Result Response Testing ========
+         */
+        QueryResultRequest resultRequest = new QueryResultRequest(actualAsyncQueryResponse.getResultId());
+        resultRequest.setShowMetrics(true);
 
-		if (request.isCompileOnly()) {
-			APIResponse resultResponse = vxQueryService.getResult(resultRequest);
-			Assert.assertTrue(resultResponse instanceof ErrorResponse);
-		} else {
-			QueryResultResponse expectedResultResponse = (QueryResultResponse) vxQueryService.getResult(resultRequest);
-			Assert.assertEquals(expectedResultResponse.getStatus(), Status.SUCCESS.toString());
-			Assert.assertNotNull(expectedResultResponse.getResults());
+        if (request.isCompileOnly()) {
+            APIResponse resultResponse = vxQueryService.getResult(resultRequest);
+            Assert.assertTrue(resultResponse instanceof ErrorResponse);
+        } else {
+            QueryResultResponse expectedResultResponse = (QueryResultResponse) vxQueryService.getResult(resultRequest);
+            Assert.assertEquals(expectedResultResponse.getStatus(), Status.SUCCESS.toString());
+            Assert.assertNotNull(expectedResultResponse.getResults());
 
-			QueryResultResponse actualResultResponse = getQueryResultResponse(resultRequest, contentType, httpMethod);
-			Assert.assertEquals(actualResultResponse.getStatus(), Status.SUCCESS.toString());
-			Assert.assertNotNull(actualResultResponse.getResults());
-			Assert.assertNotNull(actualResultResponse.getRequestId());
-			Assert.assertEquals(normalize(expectedResultResponse.getResults()),
-					normalize(actualResultResponse.getResults()));
-			if (resultRequest.isShowMetrics()) {
-				Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() > 0);
-			} else {
-				Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() == 0);
-			}
+            QueryResultResponse actualResultResponse = getQueryResultResponse(resultRequest, contentType, httpMethod);
+            Assert.assertEquals(actualResultResponse.getStatus(), Status.SUCCESS.toString());
+            Assert.assertNotNull(actualResultResponse.getResults());
+            Assert.assertNotNull(actualResultResponse.getRequestId());
+            Assert.assertEquals(normalize(expectedResultResponse.getResults()),
+                    normalize(actualResultResponse.getResults()));
+            if (resultRequest.isShowMetrics()) {
+                Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() > 0);
+            } else {
+                Assert.assertTrue(actualResultResponse.getMetrics().getElapsedTime() == 0);
+            }
 
-		}
-	}
+        }
+    }
 }

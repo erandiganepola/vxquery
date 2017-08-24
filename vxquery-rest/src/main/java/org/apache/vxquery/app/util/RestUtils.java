@@ -60,141 +60,141 @@ import org.apache.vxquery.rest.request.QueryResultRequest;
  */
 public class RestUtils {
 
-	private RestUtils() {
-	}
+    private RestUtils() {
+    }
 
-	/**
-	 * Builds the {@link URI} once the {@link QueryRequest} is given. Only the
-	 * parameters given (different from the default values) are put in the
-	 * {@link URI}
-	 * 
-	 * @param request
-	 *            {@link QueryRequest} to be converted to a {@link URI}
-	 * @param restIpAddress
-	 *            Ip address of the REST server
-	 * @param restPort
-	 *            port of the REST server
-	 * @return generated {@link URI}
-	 * @throws URISyntaxException
-	 */
-	public static URI buildQueryURI(QueryRequest request, String restIpAddress, int restPort)
-			throws URISyntaxException {
-		URIBuilder builder = new URIBuilder().setScheme("http").setHost(restIpAddress).setPort(restPort)
-				.setPath(QUERY_ENDPOINT);
+    /**
+     * Builds the {@link URI} once the {@link QueryRequest} is given. Only the
+     * parameters given (different from the default values) are put in the
+     * {@link URI}
+     * 
+     * @param request
+     *            {@link QueryRequest} to be converted to a {@link URI}
+     * @param restIpAddress
+     *            Ip address of the REST server
+     * @param restPort
+     *            port of the REST server
+     * @return generated {@link URI}
+     * @throws URISyntaxException
+     */
+    public static URI buildQueryURI(QueryRequest request, String restIpAddress, int restPort)
+            throws URISyntaxException {
+        URIBuilder builder =
+                new URIBuilder().setScheme("http").setHost(restIpAddress).setPort(restPort).setPath(QUERY_ENDPOINT);
 
-		if (request.getStatement() != null) {
-			builder.addParameter(STATEMENT, request.getStatement());
-		}
-		if (request.isCompileOnly()) {
-			builder.addParameter(COMPILE_ONLY, String.valueOf(request.isCompileOnly()));
-		}
-		if (request.getOptimization() != QueryRequest.DEFAULT_OPTIMIZATION) {
-			builder.addParameter(OPTIMIZATION, String.valueOf(request.getOptimization()));
-		}
-		if (request.getFrameSize() != QueryRequest.DEFAULT_FRAMESIZE) {
-			builder.addParameter(FRAME_SIZE, String.valueOf(request.getFrameSize()));
-		}
-		if (request.getRepeatExecutions() != 1) {
-			builder.addParameter(REPEAT_EXECUTIONS, String.valueOf(request.getRepeatExecutions()));
-		}
-		if (request.isShowMetrics()) {
-			builder.addParameter(METRICS, String.valueOf(request.isShowMetrics()));
-		}
-		if (request.isShowAbstractSyntaxTree()) {
-			builder.addParameter(SHOW_AST, String.valueOf(request.isShowAbstractSyntaxTree()));
-		}
-		if (request.isShowTranslatedExpressionTree()) {
-			builder.addParameter(SHOW_TET, String.valueOf(request.isShowTranslatedExpressionTree()));
-		}
-		if (request.isShowOptimizedExpressionTree()) {
-			builder.addParameter(SHOW_OET, String.valueOf(request.isShowOptimizedExpressionTree()));
-		}
-		if (request.isShowRuntimePlan()) {
-			builder.addParameter(SHOW_RP, String.valueOf(request.isShowRuntimePlan()));
-		}
-		if (!request.isAsync()) {
-			builder.addParameter(MODE, request.isAsync() ? MODE_ASYNC : MODE_SYNC);
-		}
+        if (request.getStatement() != null) {
+            builder.addParameter(STATEMENT, request.getStatement());
+        }
+        if (request.isCompileOnly()) {
+            builder.addParameter(COMPILE_ONLY, String.valueOf(request.isCompileOnly()));
+        }
+        if (request.getOptimization() != QueryRequest.DEFAULT_OPTIMIZATION) {
+            builder.addParameter(OPTIMIZATION, String.valueOf(request.getOptimization()));
+        }
+        if (request.getFrameSize() != QueryRequest.DEFAULT_FRAMESIZE) {
+            builder.addParameter(FRAME_SIZE, String.valueOf(request.getFrameSize()));
+        }
+        if (request.getRepeatExecutions() != 1) {
+            builder.addParameter(REPEAT_EXECUTIONS, String.valueOf(request.getRepeatExecutions()));
+        }
+        if (request.isShowMetrics()) {
+            builder.addParameter(METRICS, String.valueOf(request.isShowMetrics()));
+        }
+        if (request.isShowAbstractSyntaxTree()) {
+            builder.addParameter(SHOW_AST, String.valueOf(request.isShowAbstractSyntaxTree()));
+        }
+        if (request.isShowTranslatedExpressionTree()) {
+            builder.addParameter(SHOW_TET, String.valueOf(request.isShowTranslatedExpressionTree()));
+        }
+        if (request.isShowOptimizedExpressionTree()) {
+            builder.addParameter(SHOW_OET, String.valueOf(request.isShowOptimizedExpressionTree()));
+        }
+        if (request.isShowRuntimePlan()) {
+            builder.addParameter(SHOW_RP, String.valueOf(request.isShowRuntimePlan()));
+        }
+        if (!request.isAsync()) {
+            builder.addParameter(MODE, request.isAsync() ? MODE_ASYNC : MODE_SYNC);
+        }
 
-		return builder.build();
-	}
+        return builder.build();
+    }
 
-	/**
-	 * Builds the query result {@link URI} given the {@link QueryResultRequest}
-	 * 
-	 * @param resultRequest
-	 *            result request
-	 * @param restIpAddress
-	 *            rest server's ip
-	 * @param restPort
-	 *            port of the rest server
-	 * @return generated {@link URI}
-	 * @throws URISyntaxException
-	 */
-	public static URI buildQueryResultURI(QueryResultRequest resultRequest, String restIpAddress, int restPort)
-			throws URISyntaxException {
-		URIBuilder builder = new URIBuilder().setScheme("http").setHost(restIpAddress).setPort(restPort)
-				.setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultRequest.getResultId())));
+    /**
+     * Builds the query result {@link URI} given the {@link QueryResultRequest}
+     * 
+     * @param resultRequest
+     *            result request
+     * @param restIpAddress
+     *            rest server's ip
+     * @param restPort
+     *            port of the rest server
+     * @return generated {@link URI}
+     * @throws URISyntaxException
+     */
+    public static URI buildQueryResultURI(QueryResultRequest resultRequest, String restIpAddress, int restPort)
+            throws URISyntaxException {
+        URIBuilder builder = new URIBuilder().setScheme("http").setHost(restIpAddress).setPort(restPort)
+                .setPath(QUERY_RESULT_ENDPOINT.replace("*", String.valueOf(resultRequest.getResultId())));
 
-		if (resultRequest.isShowMetrics()) {
-			builder.setParameter(METRICS, String.valueOf(resultRequest.isShowMetrics()));
-		}
+        if (resultRequest.isShowMetrics()) {
+            builder.setParameter(METRICS, String.valueOf(resultRequest.isShowMetrics()));
+        }
 
-		return builder.build();
-	}
+        return builder.build();
+    }
 
-	/**
-	 * Reads the entity from an {@link HttpEntity}
-	 * 
-	 * @param entity
-	 *            entity instance to be read
-	 * @return entity read by this method as a string
-	 * @throws IOException
-	 */
-	public static String readEntity(HttpEntity entity) throws IOException {
-		StringBuilder responseBody = new StringBuilder();
+    /**
+     * Reads the entity from an {@link HttpEntity}
+     * 
+     * @param entity
+     *            entity instance to be read
+     * @return entity read by this method as a string
+     * @throws IOException
+     */
+    public static String readEntity(HttpEntity entity) throws IOException {
+        StringBuilder responseBody = new StringBuilder();
 
-		try (InputStream in = entity.getContent()) {
-			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-			String line;
-			while ((line = reader.readLine()) != null) {
-				responseBody.append(line);
-			}
-		}
-		return responseBody.toString();
-	}
+        try (InputStream in = entity.getContent()) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                responseBody.append(line);
+            }
+        }
+        return responseBody.toString();
+    }
 
-	/**
-	 * Maps the object in the string representation to a java object. To map json
-	 * entities, this method use {@link ObjectMapper}. For XML this method use
-	 * {@link Unmarshaller}.
-	 * 
-	 * @param entity
-	 *            string representation of the object
-	 * @param type
-	 *            the class to which the string needs to be mapped to
-	 * @param contentType
-	 *            json or XML
-	 * @param <T>
-	 *            content's class type
-	 * @return mapped object
-	 * @throws IOException
-	 * @throws JAXBException
-	 */
-	public static <T> T mapEntity(String entity, Class<T> type, String contentType) throws IOException, JAXBException {
-		if (contentType == null) {
-			contentType = CONTENT_TYPE_JSON;
-		}
+    /**
+     * Maps the object in the string representation to a java object. To map json
+     * entities, this method use {@link ObjectMapper}. For XML this method use
+     * {@link Unmarshaller}.
+     * 
+     * @param entity
+     *            string representation of the object
+     * @param type
+     *            the class to which the string needs to be mapped to
+     * @param contentType
+     *            json or XML
+     * @param <T>
+     *            content's class type
+     * @return mapped object
+     * @throws IOException
+     * @throws JAXBException
+     */
+    public static <T> T mapEntity(String entity, Class<T> type, String contentType) throws IOException, JAXBException {
+        if (contentType == null) {
+            contentType = CONTENT_TYPE_JSON;
+        }
 
-		switch (contentType) {
-			case CONTENT_TYPE_XML :
-				JAXBContext jaxbContext = JAXBContext.newInstance(type);
-				Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-				return type.cast(unmarshaller.unmarshal(new StringReader(entity)));
-			case CONTENT_TYPE_JSON :
-			default :
-				ObjectMapper jsonMapper = new ObjectMapper();
-				return jsonMapper.readValue(entity, type);
-		}
-	}
+        switch (contentType) {
+            case CONTENT_TYPE_XML:
+                JAXBContext jaxbContext = JAXBContext.newInstance(type);
+                Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
+                return type.cast(unmarshaller.unmarshal(new StringReader(entity)));
+            case CONTENT_TYPE_JSON:
+            default:
+                ObjectMapper jsonMapper = new ObjectMapper();
+                return jsonMapper.readValue(entity, type);
+        }
+    }
 }

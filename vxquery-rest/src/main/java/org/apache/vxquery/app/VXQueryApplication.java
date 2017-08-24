@@ -46,134 +46,134 @@ import org.kohsuke.args4j.Option;
  */
 public class VXQueryApplication implements ICCApplicationEntryPoint {
 
-	private static final Logger LOGGER = Logger.getLogger(VXQueryApplication.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(VXQueryApplication.class.getName());
 
-	private VXQueryService vxQueryService;
-	private RestServer restServer;
+    private VXQueryService vxQueryService;
+    private RestServer restServer;
 
-	@Override
-	public void start(ICCApplicationContext ccAppCtx, String[] args) throws Exception {
-		AppArgs appArgs = new AppArgs();
-		if (args != null) {
-			CmdLineParser parser = new CmdLineParser(appArgs);
-			try {
-				parser.parseArgument(args);
-			} catch (Exception e) {
-				parser.printUsage(System.err);
-				throw new VXQueryRuntimeException("Unable to parse app arguments", e);
-			}
-		}
+    @Override
+    public void start(ICCApplicationContext ccAppCtx, String[] args) throws Exception {
+        AppArgs appArgs = new AppArgs();
+        if (args != null) {
+            CmdLineParser parser = new CmdLineParser(appArgs);
+            try {
+                parser.parseArgument(args);
+            } catch (Exception e) {
+                parser.printUsage(System.err);
+                throw new VXQueryRuntimeException("Unable to parse app arguments", e);
+            }
+        }
 
-		VXQueryConfig config = loadConfiguration(ccAppCtx.getCCContext().getClusterControllerInfo(),
-				appArgs.getVxqueryConfig());
-		vxQueryService = new VXQueryService(config);
-		restServer = new RestServer(vxQueryService, appArgs.getRestPort());
-	}
+        VXQueryConfig config =
+                loadConfiguration(ccAppCtx.getCCContext().getClusterControllerInfo(), appArgs.getVxqueryConfig());
+        vxQueryService = new VXQueryService(config);
+        restServer = new RestServer(vxQueryService, appArgs.getRestPort());
+    }
 
-	public synchronized void stop() {
-		try {
-			LOGGER.log(Level.INFO, "Stopping REST server");
-			restServer.stop();
+    public synchronized void stop() {
+        try {
+            LOGGER.log(Level.INFO, "Stopping REST server");
+            restServer.stop();
 
-			LOGGER.log(Level.INFO, "Stopping VXQueryService");
-			vxQueryService.stop();
-		} catch (Exception e) {
-			LOGGER.log(Level.SEVERE, "Error occurred when stopping the application", e);
-		}
-	}
+            LOGGER.log(Level.INFO, "Stopping VXQueryService");
+            vxQueryService.stop();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error occurred when stopping the application", e);
+        }
+    }
 
-	@Override
-	public void startupCompleted() throws Exception {
-		try {
-			LOGGER.log(Level.INFO, "Starting VXQueryService");
-			vxQueryService.start();
-			LOGGER.log(Level.INFO, "VXQueryService started successfully");
+    @Override
+    public void startupCompleted() throws Exception {
+        try {
+            LOGGER.log(Level.INFO, "Starting VXQueryService");
+            vxQueryService.start();
+            LOGGER.log(Level.INFO, "VXQueryService started successfully");
 
-			LOGGER.log(Level.INFO, "Starting REST server");
-			restServer.start();
-		} catch (Exception e) {
-			LOGGER.log(Level.SEVERE, "Error occurred when starting application", e);
-			stop();
-			throw new VXQueryRuntimeException("Error occurred when starting application", e);
-		}
-	}
+            LOGGER.log(Level.INFO, "Starting REST server");
+            restServer.start();
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error occurred when starting application", e);
+            stop();
+            throw new VXQueryRuntimeException("Error occurred when starting application", e);
+        }
+    }
 
-	/**
-	 * Loads properties from
-	 * 
-	 * <pre>
-	 * -appConfig foo/bar.properties
-	 * </pre>
-	 * 
-	 * file if specified in the app arguments.
-	 *
-	 * @param clusterControllerInfo
-	 *            cluster controller information
-	 * @param propertiesFile
-	 *            vxquery configuration properties file, given by
-	 * 
-	 *            <pre>
-	 *            -appConfig
-	 *            </pre>
-	 * 
-	 *            option in app argument
-	 * @return A new {@link VXQueryConfig} instance with either default properties
-	 *         or properties loaded from the properties file given.
-	 */
-	private VXQueryConfig loadConfiguration(ClusterControllerInfo clusterControllerInfo, String propertiesFile) {
-		VXQueryConfig vxqConfig = new VXQueryConfig();
-		if (propertiesFile != null) {
-			try (InputStream in = new FileInputStream(propertiesFile)) {
-				System.getProperties().load(in);
-			} catch (IOException e) {
-				LOGGER.log(Level.SEVERE,
-						String.format("Error occurred when loading properties file %s", propertiesFile), e);
-			}
-		}
+    /**
+     * Loads properties from
+     * 
+     * <pre>
+     * -appConfig foo/bar.properties
+     * </pre>
+     * 
+     * file if specified in the app arguments.
+     *
+     * @param clusterControllerInfo
+     *            cluster controller information
+     * @param propertiesFile
+     *            vxquery configuration properties file, given by
+     * 
+     *            <pre>
+     *            -appConfig
+     *            </pre>
+     * 
+     *            option in app argument
+     * @return A new {@link VXQueryConfig} instance with either default properties
+     *         or properties loaded from the properties file given.
+     */
+    private VXQueryConfig loadConfiguration(ClusterControllerInfo clusterControllerInfo, String propertiesFile) {
+        VXQueryConfig vxqConfig = new VXQueryConfig();
+        if (propertiesFile != null) {
+            try (InputStream in = new FileInputStream(propertiesFile)) {
+                System.getProperties().load(in);
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE,
+                        String.format("Error occurred when loading properties file %s", propertiesFile), e);
+            }
+        }
 
-		vxqConfig.setAvailableProcessors(Integer.getInteger(AVAILABLE_PROCESSORS, 1));
-		vxqConfig.setJoinHashSize(Long.getLong(JOIN_HASH_SIZE, -1));
-		vxqConfig.setHdfsConf(System.getProperty(HDFS_CONFIG));
-		vxqConfig.setMaximumDataSize(Long.getLong(MAXIMUM_DATA_SIZE, -1));
+        vxqConfig.setAvailableProcessors(Integer.getInteger(AVAILABLE_PROCESSORS, 1));
+        vxqConfig.setJoinHashSize(Long.getLong(JOIN_HASH_SIZE, -1));
+        vxqConfig.setHdfsConf(System.getProperty(HDFS_CONFIG));
+        vxqConfig.setMaximumDataSize(Long.getLong(MAXIMUM_DATA_SIZE, -1));
 
-		vxqConfig.setHyracksClientIp(clusterControllerInfo.getClientNetAddress());
-		vxqConfig.setHyracksClientPort(clusterControllerInfo.getClientNetPort());
+        vxqConfig.setHyracksClientIp(clusterControllerInfo.getClientNetAddress());
+        vxqConfig.setHyracksClientPort(clusterControllerInfo.getClientNetPort());
 
-		return vxqConfig;
-	}
+        return vxqConfig;
+    }
 
-	public VXQueryService getVxQueryService() {
-		return vxQueryService;
-	}
+    public VXQueryService getVxQueryService() {
+        return vxQueryService;
+    }
 
-	public RestServer getRestServer() {
-		return restServer;
-	}
+    public RestServer getRestServer() {
+        return restServer;
+    }
 
-	/**
-	 * Application Arguments bean class
-	 */
-	private class AppArgs {
-		@Option(name = "-restPort", usage = "The port on which REST server starts")
-		private int restPort = 8080;
+    /**
+     * Application Arguments bean class
+     */
+    private class AppArgs {
+        @Option(name = "-restPort", usage = "The port on which REST server starts")
+        private int restPort = 8080;
 
-		@Option(name = "-appConfig", usage = "Properties file location which includes VXQueryService Application additional configuration")
-		private String vxqueryConfig = null;
+        @Option(name = "-appConfig", usage = "Properties file location which includes VXQueryService Application additional configuration")
+        private String vxqueryConfig = null;
 
-		public String getVxqueryConfig() {
-			return vxqueryConfig;
-		}
+        public String getVxqueryConfig() {
+            return vxqueryConfig;
+        }
 
-		public void setVxqueryConfig(String vxqueryConfig) {
-			this.vxqueryConfig = vxqueryConfig;
-		}
+        public void setVxqueryConfig(String vxqueryConfig) {
+            this.vxqueryConfig = vxqueryConfig;
+        }
 
-		public int getRestPort() {
-			return restPort;
-		}
+        public int getRestPort() {
+            return restPort;
+        }
 
-		public void setRestPort(int restPort) {
-			this.restPort = restPort;
-		}
-	}
+        public void setRestPort(int restPort) {
+            this.restPort = restPort;
+        }
+    }
 }

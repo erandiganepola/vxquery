@@ -58,82 +58,82 @@ import org.apache.vxquery.rest.service.VXQueryService;
  */
 public class QueryAPIServlet extends RestAPIServlet {
 
-	private VXQueryService vxQueryService;
+    private VXQueryService vxQueryService;
 
-	public QueryAPIServlet(VXQueryService vxQueryService, ConcurrentMap<String, Object> ctx, String... paths) {
-		super(ctx, paths);
-		this.vxQueryService = vxQueryService;
-	}
+    public QueryAPIServlet(VXQueryService vxQueryService, ConcurrentMap<String, Object> ctx, String... paths) {
+        super(ctx, paths);
+        this.vxQueryService = vxQueryService;
+    }
 
-	@Override
-	protected APIResponse doHandle(IServletRequest request) {
-		LOGGER.log(Level.INFO,
-				String.format("Received a query request with query : %s", request.getParameter("statement")));
+    @Override
+    protected APIResponse doHandle(IServletRequest request) {
+        LOGGER.log(Level.INFO,
+                String.format("Received a query request with query : %s", request.getParameter("statement")));
 
-		QueryRequest queryRequest;
-		try {
-			queryRequest = getQueryRequest(request);
-		} catch (Exception e) {
-			return APIResponse.newErrorResponse(null,
-					Error.builder().withCode(Constants.ErrorCodes.INVALID_INPUT).withMessage("Invalid input").build());
-		}
+        QueryRequest queryRequest;
+        try {
+            queryRequest = getQueryRequest(request);
+        } catch (Exception e) {
+            return APIResponse.newErrorResponse(null,
+                    Error.builder().withCode(Constants.ErrorCodes.INVALID_INPUT).withMessage("Invalid input").build());
+        }
 
-		try {
-			return vxQueryService.execute(queryRequest);
-		} catch (Exception e) {
-			LOGGER.log(Level.SEVERE, "Error occurred when trying to execute query : " + queryRequest.getStatement(), e);
-			return APIResponse.newErrorResponse(queryRequest.getRequestId(), Error.builder()
-					.withCode(Constants.ErrorCodes.UNFORSEEN_PROBLEM).withMessage(e.getMessage()).build());
-		}
-	}
+        try {
+            return vxQueryService.execute(queryRequest);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error occurred when trying to execute query : " + queryRequest.getStatement(), e);
+            return APIResponse.newErrorResponse(queryRequest.getRequestId(), Error.builder()
+                    .withCode(Constants.ErrorCodes.UNFORSEEN_PROBLEM).withMessage(e.getMessage()).build());
+        }
+    }
 
-	private QueryRequest getQueryRequest(IServletRequest request) throws IOException, JAXBException {
-		if (request.getParameter(STATEMENT) == null || request.getParameter(STATEMENT).trim().isEmpty()) {
-			throw new IllegalArgumentException("Parameter 'statement' is required to handle the request");
-		}
+    private QueryRequest getQueryRequest(IServletRequest request) throws IOException, JAXBException {
+        if (request.getParameter(STATEMENT) == null || request.getParameter(STATEMENT).trim().isEmpty()) {
+            throw new IllegalArgumentException("Parameter 'statement' is required to handle the request");
+        }
 
-		QueryRequest queryRequest = new QueryRequest(UUID.randomUUID().toString(), request.getParameter(STATEMENT));
-		queryRequest.setCompileOnly(Boolean.parseBoolean(request.getParameter(COMPILE_ONLY)));
-		queryRequest.setShowMetrics(Boolean.parseBoolean(request.getParameter(METRICS)));
+        QueryRequest queryRequest = new QueryRequest(UUID.randomUUID().toString(), request.getParameter(STATEMENT));
+        queryRequest.setCompileOnly(Boolean.parseBoolean(request.getParameter(COMPILE_ONLY)));
+        queryRequest.setShowMetrics(Boolean.parseBoolean(request.getParameter(METRICS)));
 
-		queryRequest.setShowAbstractSyntaxTree(Boolean.parseBoolean(request.getParameter(SHOW_AST)));
-		queryRequest.setShowTranslatedExpressionTree(Boolean.parseBoolean(request.getParameter(SHOW_TET)));
-		queryRequest.setShowOptimizedExpressionTree(Boolean.parseBoolean(request.getParameter(SHOW_OET)));
-		queryRequest.setShowRuntimePlan(Boolean.parseBoolean(request.getParameter(SHOW_RP)));
+        queryRequest.setShowAbstractSyntaxTree(Boolean.parseBoolean(request.getParameter(SHOW_AST)));
+        queryRequest.setShowTranslatedExpressionTree(Boolean.parseBoolean(request.getParameter(SHOW_TET)));
+        queryRequest.setShowOptimizedExpressionTree(Boolean.parseBoolean(request.getParameter(SHOW_OET)));
+        queryRequest.setShowRuntimePlan(Boolean.parseBoolean(request.getParameter(SHOW_RP)));
 
-		if (request.getParameter(OPTIMIZATION) != null) {
-			queryRequest.setOptimization(Integer.parseInt(request.getParameter(OPTIMIZATION)));
-		}
-		if (request.getParameter(FRAME_SIZE) != null) {
-			queryRequest.setFrameSize(Integer.parseInt(request.getParameter(FRAME_SIZE)));
-		}
-		if (request.getParameter(REPEAT_EXECUTIONS) != null) {
-			queryRequest.setRepeatExecutions(Integer.parseInt(request.getParameter(REPEAT_EXECUTIONS)));
-		}
+        if (request.getParameter(OPTIMIZATION) != null) {
+            queryRequest.setOptimization(Integer.parseInt(request.getParameter(OPTIMIZATION)));
+        }
+        if (request.getParameter(FRAME_SIZE) != null) {
+            queryRequest.setFrameSize(Integer.parseInt(request.getParameter(FRAME_SIZE)));
+        }
+        if (request.getParameter(REPEAT_EXECUTIONS) != null) {
+            queryRequest.setRepeatExecutions(Integer.parseInt(request.getParameter(REPEAT_EXECUTIONS)));
+        }
 
-		String sourceFileMap = request.getHttpRequest().content().toString(StandardCharsets.UTF_8);
-		if (sourceFileMap != null && !sourceFileMap.isEmpty()) {
-			Map<String, String> map = (Map<String, String>) RestUtils.mapEntity(sourceFileMap, Map.class,
-					request.getHeader(CONTENT_TYPE));
-			LOGGER.log(Level.FINE, "Found source file map");
-			Map<String, File> fileMap = map.entrySet().stream()
-					.map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), new File(entry.getValue())))
-					.collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
-			queryRequest.setSourceFileMap(fileMap);
-		}
+        String sourceFileMap = request.getHttpRequest().content().toString(StandardCharsets.UTF_8);
+        if (sourceFileMap != null && !sourceFileMap.isEmpty()) {
+            Map<String, String> map = (Map<String, String>) RestUtils.mapEntity(sourceFileMap, Map.class,
+                    request.getHeader(CONTENT_TYPE));
+            LOGGER.log(Level.FINE, "Found source file map");
+            Map<String, File> fileMap = map.entrySet().stream()
+                    .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), new File(entry.getValue())))
+                    .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
+            queryRequest.setSourceFileMap(fileMap);
+        }
 
-		if (request.getParameter(MODE) != null) {
-			switch (request.getParameter(MODE)) {
-				case MODE_SYNC :
-					queryRequest.setAsync(false);
-					break;
-				case MODE_ASYNC :
-				default :
-					queryRequest.setAsync(true);
-					break;
-			}
-		}
+        if (request.getParameter(MODE) != null) {
+            switch (request.getParameter(MODE)) {
+                case MODE_SYNC:
+                    queryRequest.setAsync(false);
+                    break;
+                case MODE_ASYNC:
+                default:
+                    queryRequest.setAsync(true);
+                    break;
+            }
+        }
 
-		return queryRequest;
-	}
+        return queryRequest;
+    }
 }

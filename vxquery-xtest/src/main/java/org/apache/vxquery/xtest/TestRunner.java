@@ -49,134 +49,134 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 public class TestRunner {
 
-	private static final Pattern EMBEDDED_SYSERROR_PATTERN = Pattern.compile("(\\p{javaUpperCase}{4}\\d{4})");
+    private static final Pattern EMBEDDED_SYSERROR_PATTERN = Pattern.compile("(\\p{javaUpperCase}{4}\\d{4})");
 
-	private XTestOptions opts;
+    private XTestOptions opts;
 
-	public TestRunner(XTestOptions opts) throws UnknownHostException {
-		this.opts = opts;
-	}
+    public TestRunner(XTestOptions opts) throws UnknownHostException {
+        this.opts = opts;
+    }
 
-	public void open() throws Exception {
-	}
+    public void open() throws Exception {
+    }
 
-	public TestCaseResult run(final TestCase testCase) {
-		TestCaseResult res = new TestCaseResult(testCase);
-		runQueries(testCase, res);
-		return res;
-	}
+    public TestCaseResult run(final TestCase testCase) {
+        TestCaseResult res = new TestCaseResult(testCase);
+        runQueries(testCase, res);
+        return res;
+    }
 
-	public void runQuery(TestCase testCase, TestCaseResult res) {
-		if (opts.verbose) {
-			System.err.println("Starting " + testCase.getXQueryDisplayName());
-		}
+    public void runQuery(TestCase testCase, TestCaseResult res) {
+        if (opts.verbose) {
+            System.err.println("Starting " + testCase.getXQueryDisplayName());
+        }
 
-		long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
 
-		try {
-			String query = FileUtils.readFileToString(testCase.getXQueryFile(), "UTF-8");
+        try {
+            String query = FileUtils.readFileToString(testCase.getXQueryFile(), "UTF-8");
 
-			if (opts.showQuery) {
-				System.err.println("***Query for " + testCase.getXQueryDisplayName() + ": ");
-				System.err.println(query);
-			}
+            if (opts.showQuery) {
+                System.err.println("***Query for " + testCase.getXQueryDisplayName() + ": ");
+                System.err.println(query);
+            }
 
-			QueryRequest request = createQueryRequest(opts, query);
-			APIResponse response = sendQueryRequest(request, testCase.getSourceFileMap());
-			if (response instanceof SyncQueryResponse) {
-				res.result = ((SyncQueryResponse) response).getResults();
-			} else {
-				System.err.println("Error response: Failure when running the query");
-				ErrorResponse errorResponse = (ErrorResponse) response;
-				Matcher m = EMBEDDED_SYSERROR_PATTERN.matcher(errorResponse.getError().getMessage());
+            QueryRequest request = createQueryRequest(opts, query);
+            APIResponse response = sendQueryRequest(request, testCase.getSourceFileMap());
+            if (response instanceof SyncQueryResponse) {
+                res.result = ((SyncQueryResponse) response).getResults();
+            } else {
+                System.err.println("Error response: Failure when running the query");
+                ErrorResponse errorResponse = (ErrorResponse) response;
+                Matcher m = EMBEDDED_SYSERROR_PATTERN.matcher(errorResponse.getError().getMessage());
 
-				Exception e = new RuntimeException("Failed to run the query");
-				if (m.find()) {
-					String eCode = m.group(1);
-					throw new SystemException(ErrorCode.valueOf(eCode), e);
-				} else {
-					throw e;
-				}
-			}
-		} catch (Throwable e) {
-			res.error = e;
-		} finally {
-			try {
-				res.compare();
-			} catch (Exception e) {
-				System.err.println("Framework error");
-				e.printStackTrace();
-			}
-			long end = System.currentTimeMillis();
-			res.time = end - start;
-		}
+                Exception e = new RuntimeException("Failed to run the query");
+                if (m.find()) {
+                    String eCode = m.group(1);
+                    throw new SystemException(ErrorCode.valueOf(eCode), e);
+                } else {
+                    throw e;
+                }
+            }
+        } catch (Throwable e) {
+            res.error = e;
+        } finally {
+            try {
+                res.compare();
+            } catch (Exception e) {
+                System.err.println("Framework error");
+                e.printStackTrace();
+            }
+            long end = System.currentTimeMillis();
+            res.time = end - start;
+        }
 
-		if (opts.showResult) {
-			if (res.result == null) {
-				System.err.println("***Error: ");
-				System.err.println("Message: " + res.error.getMessage());
-				res.error.printStackTrace();
-			} else {
-				System.err.println("***Result: ");
-				System.err.println(res.result);
-			}
-		}
-	}
+        if (opts.showResult) {
+            if (res.result == null) {
+                System.err.println("***Error: ");
+                System.err.println("Message: " + res.error.getMessage());
+                res.error.printStackTrace();
+            } else {
+                System.err.println("***Result: ");
+                System.err.println(res.result);
+            }
+        }
+    }
 
-	private static QueryRequest createQueryRequest(XTestOptions opts, String query) {
-		QueryRequest request = new QueryRequest(query);
-		request.setCompileOnly(opts.compileOnly);
-		request.setOptimization(opts.optimizationLevel);
-		request.setFrameSize(opts.frameSize);
-		request.setShowAbstractSyntaxTree(opts.showAST);
-		request.setShowTranslatedExpressionTree(opts.showTET);
-		request.setShowOptimizedExpressionTree(opts.showOET);
-		request.setShowRuntimePlan(opts.showRP);
-		request.setAsync(false);
+    private static QueryRequest createQueryRequest(XTestOptions opts, String query) {
+        QueryRequest request = new QueryRequest(query);
+        request.setCompileOnly(opts.compileOnly);
+        request.setOptimization(opts.optimizationLevel);
+        request.setFrameSize(opts.frameSize);
+        request.setShowAbstractSyntaxTree(opts.showAST);
+        request.setShowTranslatedExpressionTree(opts.showTET);
+        request.setShowOptimizedExpressionTree(opts.showOET);
+        request.setShowRuntimePlan(opts.showRP);
+        request.setAsync(false);
 
-		return request;
-	}
+        return request;
+    }
 
-	private static APIResponse sendQueryRequest(QueryRequest request, Map<String, File> sourceFileMap)
-			throws IOException, URISyntaxException {
+    private static APIResponse sendQueryRequest(QueryRequest request, Map<String, File> sourceFileMap)
+            throws IOException, URISyntaxException {
 
-		URI uri = RestUtils.buildQueryURI(request, TestClusterUtil.localClusterUtil.getIpAddress(),
-				TestClusterUtil.localClusterUtil.getRestPort());
-		CloseableHttpClient httpClient = HttpClients.custom().build();
+        URI uri = RestUtils.buildQueryURI(request, TestClusterUtil.localClusterUtil.getIpAddress(),
+                TestClusterUtil.localClusterUtil.getRestPort());
+        CloseableHttpClient httpClient = HttpClients.custom().build();
 
-		try {
-			HttpPost httpRequest = new HttpPost(uri);
-			httpRequest.setHeader(HttpHeaders.ACCEPT, CONTENT_TYPE_JSON);
+        try {
+            HttpPost httpRequest = new HttpPost(uri);
+            httpRequest.setHeader(HttpHeaders.ACCEPT, CONTENT_TYPE_JSON);
 
-			ObjectMapper mapper = new ObjectMapper();
-			String fileMap = mapper.writeValueAsString(sourceFileMap);
-			httpRequest.setEntity(new StringEntity(fileMap, StandardCharsets.UTF_8));
+            ObjectMapper mapper = new ObjectMapper();
+            String fileMap = mapper.writeValueAsString(sourceFileMap);
+            httpRequest.setEntity(new StringEntity(fileMap, StandardCharsets.UTF_8));
 
-			try (CloseableHttpResponse httpResponse = httpClient.execute(httpRequest)) {
-				HttpEntity entity = httpResponse.getEntity();
-				String response = RestUtils.readEntity(entity);
-				if (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-					return RestUtils.mapEntity(response, SyncQueryResponse.class, CONTENT_TYPE_JSON);
-				} else {
-					return RestUtils.mapEntity(response, ErrorResponse.class, CONTENT_TYPE_JSON);
-				}
-			} catch (IOException e) {
-				System.err.println("Error occurred when reading entity: " + e.getMessage());
-			} catch (JAXBException e) {
-				System.err.println("Error occurred when mapping query response: " + e.getMessage());
-			}
-		} finally {
-			HttpClientUtils.closeQuietly(httpClient);
-		}
+            try (CloseableHttpResponse httpResponse = httpClient.execute(httpRequest)) {
+                HttpEntity entity = httpResponse.getEntity();
+                String response = RestUtils.readEntity(entity);
+                if (httpResponse.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                    return RestUtils.mapEntity(response, SyncQueryResponse.class, CONTENT_TYPE_JSON);
+                } else {
+                    return RestUtils.mapEntity(response, ErrorResponse.class, CONTENT_TYPE_JSON);
+                }
+            } catch (IOException e) {
+                System.err.println("Error occurred when reading entity: " + e.getMessage());
+            } catch (JAXBException e) {
+                System.err.println("Error occurred when mapping query response: " + e.getMessage());
+            }
+        } finally {
+            HttpClientUtils.closeQuietly(httpClient);
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	public void runQueries(TestCase testCase, TestCaseResult res) {
-		runQuery(testCase, res);
-	}
+    public void runQueries(TestCase testCase, TestCaseResult res) {
+        runQuery(testCase, res);
+    }
 
-	public void close() throws Exception {
-		// TODO add a close statement for the hyracks connection.
-	}
+    public void close() throws Exception {
+        // TODO add a close statement for the hyracks connection.
+    }
 }

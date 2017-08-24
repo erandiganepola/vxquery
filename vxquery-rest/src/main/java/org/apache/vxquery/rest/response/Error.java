@@ -41,61 +41,61 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class Error {
 
-	private int code;
-	private String message;
+    private int code;
+    private String message;
 
-	public Error() {
-	}
+    public Error() {
+    }
 
-	public Error(int code, String message) {
-		this.code = code;
-		this.message = message;
-	}
+    public Error(int code, String message) {
+        this.code = code;
+        this.message = message;
+    }
 
-	public int getCode() {
-		return code;
-	}
+    public int getCode() {
+        return code;
+    }
 
-	public void setCode(int code) {
-		this.code = code;
-	}
+    public void setCode(int code) {
+        this.code = code;
+    }
 
-	public String getMessage() {
-		return message;
-	}
+    public String getMessage() {
+        return message;
+    }
 
-	public void setMessage(String message) {
-		this.message = message;
-	}
+    public void setMessage(String message) {
+        this.message = message;
+    }
 
-	public static Builder builder() {
-		return new Builder();
-	}
+    public static Builder builder() {
+        return new Builder();
+    }
 
-	public static class Builder {
-		private int code = -1;
-		private String message = null;
+    public static class Builder {
+        private int code = -1;
+        private String message = null;
 
-		public Builder withCode(int code) {
-			this.code = code;
-			return this;
-		}
+        public Builder withCode(int code) {
+            this.code = code;
+            return this;
+        }
 
-		public Builder withMessage(String message) {
-			this.message = message;
-			return this;
-		}
+        public Builder withMessage(String message) {
+            this.message = message;
+            return this;
+        }
 
-		public Error build() {
-			if (code == -1) {
-				code = 500;
-			}
+        public Error build() {
+            if (code == -1) {
+                code = 500;
+            }
 
-			if (message == null) {
-				message = "unexpected Error";
-			}
+            if (message == null) {
+                message = "unexpected Error";
+            }
 
-			return new Error(code, message);
-		}
-	}
+            return new Error(code, message);
+        }
+    }
 }

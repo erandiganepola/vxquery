@@ -32,56 +32,56 @@ import org.apache.vxquery.rest.service.Status;
  */
 public class APIResponse {
 
-	private String status;
-	private String requestId;
+    private String status;
+    private String requestId;
 
-	public APIResponse() {
-		status = Status.SUCCESS.toString();
-	}
+    public APIResponse() {
+        status = Status.SUCCESS.toString();
+    }
 
-	public APIResponse(String status) {
-		this.status = status;
-	}
+    public APIResponse(String status) {
+        this.status = status;
+    }
 
-	public String getStatus() {
-		return status;
-	}
+    public String getStatus() {
+        return status;
+    }
 
-	public String getRequestId() {
-		return requestId;
-	}
+    public String getRequestId() {
+        return requestId;
+    }
 
-	public void setRequestId(String requestId) {
-		this.requestId = requestId;
-	}
+    public void setRequestId(String requestId) {
+        this.requestId = requestId;
+    }
 
-	public static ErrorResponse newErrorResponse(String requestId, Error error) {
-		ErrorResponse response = new ErrorResponse();
-		response.setRequestId(requestId);
-		response.setError(error);
-		return response;
-	}
+    public static ErrorResponse newErrorResponse(String requestId, Error error) {
+        ErrorResponse response = new ErrorResponse();
+        response.setRequestId(requestId);
+        response.setError(error);
+        return response;
+    }
 
-	public static QueryResponse newQueryResponse(QueryRequest request, ResultSetId resultSetId) {
-		QueryResponse response;
-		if (request.isAsync()) {
-			AsyncQueryResponse asyncQueryResponse = new AsyncQueryResponse();
-			if (!request.isCompileOnly()) {
-				asyncQueryResponse.setResultId(resultSetId.getId());
-				asyncQueryResponse.setResultUrl(RESULT_URL_PREFIX + resultSetId.getId());
-			}
-			response = asyncQueryResponse;
-		} else {
-			response = new SyncQueryResponse();
-		}
+    public static QueryResponse newQueryResponse(QueryRequest request, ResultSetId resultSetId) {
+        QueryResponse response;
+        if (request.isAsync()) {
+            AsyncQueryResponse asyncQueryResponse = new AsyncQueryResponse();
+            if (!request.isCompileOnly()) {
+                asyncQueryResponse.setResultId(resultSetId.getId());
+                asyncQueryResponse.setResultUrl(RESULT_URL_PREFIX + resultSetId.getId());
+            }
+            response = asyncQueryResponse;
+        } else {
+            response = new SyncQueryResponse();
+        }
 
-		response.setRequestId(request.getRequestId());
-		return response;
-	}
+        response.setRequestId(request.getRequestId());
+        return response;
+    }
 
-	public static QueryResultResponse newQueryResultResponse(String requestId) {
-		QueryResultResponse response = new QueryResultResponse();
-		response.setRequestId(requestId);
-		return response;
-	}
+    public static QueryResultResponse newQueryResultResponse(String requestId) {
+        QueryResultResponse response = new QueryResultResponse();
+        response.setRequestId(requestId);
+        return response;
+    }
 }
