@@ -21,22 +21,22 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class Metrics {
-    private long compileTime;
-    private long elapsedTime;
+	private long compileTime;
+	private long elapsedTime;
 
-    public long getCompileTime() {
-        return compileTime;
-    }
+	public long getCompileTime() {
+		return compileTime;
+	}
 
-    public void setCompileTime(long compileTime) {
-        this.compileTime = compileTime;
-    }
+	public void setCompileTime(long compileTime) {
+		this.compileTime = compileTime;
+	}
 
-    public long getElapsedTime() {
-        return elapsedTime;
-    }
+	public long getElapsedTime() {
+		return elapsedTime;
+	}
 
-    public void setElapsedTime(long elapsedTime) {
-        this.elapsedTime = elapsedTime;
-    }
+	public void setElapsedTime(long elapsedTime) {
+		this.elapsedTime = elapsedTime;
+	}
 }

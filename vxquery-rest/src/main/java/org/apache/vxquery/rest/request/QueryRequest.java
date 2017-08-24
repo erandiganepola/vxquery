@@ -16,11 +16,11 @@
  */
 package org.apache.vxquery.rest.request;
 
-import org.apache.vxquery.rest.RestServer;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.vxquery.rest.RestServer;
 
 /**
  * Request to represent a query request coming to the {@link RestServer}
@@ -29,137 +29,137 @@ import java.util.Map;
  */
 public class QueryRequest {
 
-    public static final int DEFAULT_FRAMESIZE = 65536;
-    public static final int DEFAULT_OPTIMIZATION = 0;
+	public static final int DEFAULT_FRAMESIZE = 65536;
+	public static final int DEFAULT_OPTIMIZATION = 0;
 
-    private String statement;
-    private boolean async = true;
-    private boolean compileOnly;
-    private int optimization = DEFAULT_OPTIMIZATION;
-    /** Frame size in bytes. (default: 65,536) */
-    private int frameSize = DEFAULT_FRAMESIZE;
-    private int repeatExecutions = 1;
-    private boolean showMetrics = false;
-    private boolean showAbstractSyntaxTree = false;
-    private boolean showTranslatedExpressionTree = false;
-    private boolean showOptimizedExpressionTree = false;
-    private boolean showRuntimePlan = false;
-    /** A unique UUID to uniquely identify a given request */
-    private String requestId;
+	private String statement;
+	private boolean async = true;
+	private boolean compileOnly;
+	private int optimization = DEFAULT_OPTIMIZATION;
+	/** Frame size in bytes. (default: 65,536) */
+	private int frameSize = DEFAULT_FRAMESIZE;
+	private int repeatExecutions = 1;
+	private boolean showMetrics = false;
+	private boolean showAbstractSyntaxTree = false;
+	private boolean showTranslatedExpressionTree = false;
+	private boolean showOptimizedExpressionTree = false;
+	private boolean showRuntimePlan = false;
+	/** A unique UUID to uniquely identify a given request */
+	private String requestId;
 
-    /** An optional map of source files. Required for XTests */
-    private Map<String, File> sourceFileMap = new HashMap<>();
+	/** An optional map of source files. Required for XTests */
+	private Map<String, File> sourceFileMap = new HashMap<>();
 
-    public QueryRequest(String statement) {
-        this(null, statement);
-    }
+	public QueryRequest(String statement) {
+		this(null, statement);
+	}
 
-    public QueryRequest(String requestId, String statement) {
-        if (statement == null) {
-            throw new IllegalArgumentException("Statement cannot be null");
-        }
+	public QueryRequest(String requestId, String statement) {
+		if (statement == null) {
+			throw new IllegalArgumentException("Statement cannot be null");
+		}
 
-        this.statement = statement;
-        this.requestId = requestId;
-    }
+		this.statement = statement;
+		this.requestId = requestId;
+	}
 
-    public String getStatement() {
-        return statement;
-    }
+	public String getStatement() {
+		return statement;
+	}
 
-    public boolean isCompileOnly() {
-        return compileOnly;
-    }
+	public boolean isCompileOnly() {
+		return compileOnly;
+	}
 
-    public void setCompileOnly(boolean compileOnly) {
-        this.compileOnly = compileOnly;
-    }
+	public void setCompileOnly(boolean compileOnly) {
+		this.compileOnly = compileOnly;
+	}
 
-    public int getOptimization() {
-        return optimization;
-    }
+	public int getOptimization() {
+		return optimization;
+	}
 
-    public void setOptimization(int optimization) {
-        this.optimization = optimization;
-    }
+	public void setOptimization(int optimization) {
+		this.optimization = optimization;
+	}
 
-    public int getFrameSize() {
-        return frameSize;
-    }
+	public int getFrameSize() {
+		return frameSize;
+	}
 
-    public void setFrameSize(int frameSize) {
-        this.frameSize = frameSize;
-    }
+	public void setFrameSize(int frameSize) {
+		this.frameSize = frameSize;
+	}
 
-    public int getRepeatExecutions() {
-        return repeatExecutions;
-    }
+	public int getRepeatExecutions() {
+		return repeatExecutions;
+	}
 
-    public void setRepeatExecutions(int repeatExecutions) {
-        this.repeatExecutions = repeatExecutions;
-    }
+	public void setRepeatExecutions(int repeatExecutions) {
+		this.repeatExecutions = repeatExecutions;
+	}
 
-    public boolean isShowAbstractSyntaxTree() {
-        return showAbstractSyntaxTree;
-    }
+	public boolean isShowAbstractSyntaxTree() {
+		return showAbstractSyntaxTree;
+	}
 
-    public void setShowAbstractSyntaxTree(boolean showAbstractSyntaxTree) {
-        this.showAbstractSyntaxTree = showAbstractSyntaxTree;
-    }
+	public void setShowAbstractSyntaxTree(boolean showAbstractSyntaxTree) {
+		this.showAbstractSyntaxTree = showAbstractSyntaxTree;
+	}
 
-    public boolean isShowTranslatedExpressionTree() {
-        return showTranslatedExpressionTree;
-    }
+	public boolean isShowTranslatedExpressionTree() {
+		return showTranslatedExpressionTree;
+	}
 
-    public void setShowTranslatedExpressionTree(boolean showTranslatedExpressionTree) {
-        this.showTranslatedExpressionTree = showTranslatedExpressionTree;
-    }
+	public void setShowTranslatedExpressionTree(boolean showTranslatedExpressionTree) {
+		this.showTranslatedExpressionTree = showTranslatedExpressionTree;
+	}
 
-    public boolean isShowOptimizedExpressionTree() {
-        return showOptimizedExpressionTree;
-    }
+	public boolean isShowOptimizedExpressionTree() {
+		return showOptimizedExpressionTree;
+	}
 
-    public void setShowOptimizedExpressionTree(boolean showOptimizedExpressionTree) {
-        this.showOptimizedExpressionTree = showOptimizedExpressionTree;
-    }
+	public void setShowOptimizedExpressionTree(boolean showOptimizedExpressionTree) {
+		this.showOptimizedExpressionTree = showOptimizedExpressionTree;
+	}
 
-    public boolean isShowRuntimePlan() {
-        return showRuntimePlan;
-    }
+	public boolean isShowRuntimePlan() {
+		return showRuntimePlan;
+	}
 
-    public void setShowRuntimePlan(boolean showRuntimePlan) {
-        this.showRuntimePlan = showRuntimePlan;
-    }
+	public void setShowRuntimePlan(boolean showRuntimePlan) {
+		this.showRuntimePlan = showRuntimePlan;
+	}
 
-    public boolean isShowMetrics() {
-        return showMetrics;
-    }
+	public boolean isShowMetrics() {
+		return showMetrics;
+	}
 
-    public void setShowMetrics(boolean showMetrics) {
-        this.showMetrics = showMetrics;
-    }
+	public void setShowMetrics(boolean showMetrics) {
+		this.showMetrics = showMetrics;
+	}
 
-    public String toString() {
-        return String.format("{ statement : %s }", statement);
-    }
+	public String toString() {
+		return String.format("{ statement : %s }", statement);
+	}
 
-    public String getRequestId() {
-        return requestId;
-    }
+	public String getRequestId() {
+		return requestId;
+	}
 
-    public boolean isAsync() {
-        return async;
-    }
+	public boolean isAsync() {
+		return async;
+	}
 
-    public void setAsync(boolean async) {
-        this.async = async;
-    }
+	public void setAsync(boolean async) {
+		this.async = async;
+	}
 
-    public Map<String, File> getSourceFileMap() {
-        return sourceFileMap;
-    }
+	public Map<String, File> getSourceFileMap() {
+		return sourceFileMap;
+	}
 
-    public void setSourceFileMap(Map<String, File> sourceFileMap) {
-        this.sourceFileMap = sourceFileMap;
-    }
+	public void setSourceFileMap(Map<String, File> sourceFileMap) {
+		this.sourceFileMap = sourceFileMap;
+	}
 }

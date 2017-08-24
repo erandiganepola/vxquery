@@ -18,22 +18,33 @@
 package org.apache.vxquery.rest.service;
 
 /**
- * There can only 2 states for a response from the {@link org.apache.vxquery.rest.RestServer}. They are,
- * <pre>SUCCESS</pre> and <pre>FATAL</pre>. This enum represents those two types.
+ * There can only 2 states for a response from the
+ * {@link org.apache.vxquery.rest.RestServer}. They are,
+ * 
+ * <pre>
+ * SUCCESS
+ * </pre>
+ * 
+ * and
+ * 
+ * <pre>
+ * FATAL
+ * </pre>
+ * 
+ * . This enum represents those two types.
  *
  * @author Erandi Ganepola
  */
 public enum Status {
-    SUCCESS("success"),
-    FATAL("fatal");
+	SUCCESS("success"), FATAL("fatal");
 
-    private final String name;
+	private final String name;
 
-    Status(String name) {
-        this.name = name;
-    }
+	Status(String name) {
+		this.name = name;
+	}
 
-    public String toString() {
-        return name;
-    }
+	public String toString() {
+		return name;
+	}
 }

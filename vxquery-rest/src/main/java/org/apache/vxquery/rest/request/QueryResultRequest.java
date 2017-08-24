@@ -26,32 +26,32 @@ import org.apache.vxquery.rest.RestServer;
  */
 public class QueryResultRequest {
 
-    private long resultId;
-    private boolean showMetrics = false;
-    private String requestId;
+	private long resultId;
+	private boolean showMetrics = false;
+	private String requestId;
 
-    public QueryResultRequest(long resultId) {
-        this(resultId, null);
-    }
+	public QueryResultRequest(long resultId) {
+		this(resultId, null);
+	}
 
-    public QueryResultRequest(long resultId, String requestId) {
-        this.resultId = resultId;
-        this.requestId = requestId;
-    }
+	public QueryResultRequest(long resultId, String requestId) {
+		this.resultId = resultId;
+		this.requestId = requestId;
+	}
 
-    public long getResultId() {
-        return resultId;
-    }
+	public long getResultId() {
+		return resultId;
+	}
 
-    public boolean isShowMetrics() {
-        return showMetrics;
-    }
+	public boolean isShowMetrics() {
+		return showMetrics;
+	}
 
-    public void setShowMetrics(boolean showMetrics) {
-        this.showMetrics = showMetrics;
-    }
+	public void setShowMetrics(boolean showMetrics) {
+		this.showMetrics = showMetrics;
+	}
 
-    public String getRequestId() {
-        return requestId;
-    }
+	public String getRequestId() {
+		return requestId;
+	}
 }

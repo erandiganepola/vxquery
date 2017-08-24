@@ -26,22 +26,22 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class AsyncQueryResponse extends QueryResponse {
 
-    private long resultId;
-    private String resultUrl;
+	private long resultId;
+	private String resultUrl;
 
-    public long getResultId() {
-        return resultId;
-    }
+	public long getResultId() {
+		return resultId;
+	}
 
-    public void setResultId(long resultId) {
-        this.resultId = resultId;
-    }
+	public void setResultId(long resultId) {
+		this.resultId = resultId;
+	}
 
-    public String getResultUrl() {
-        return resultUrl;
-    }
+	public String getResultUrl() {
+		return resultUrl;
+	}
 
-    public void setResultUrl(String resultUrl) {
-        this.resultUrl = resultUrl;
-    }
+	public void setResultUrl(String resultUrl) {
+		this.resultUrl = resultUrl;
+	}
 }

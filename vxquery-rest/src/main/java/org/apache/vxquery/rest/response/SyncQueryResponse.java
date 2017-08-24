@@ -22,13 +22,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement
 public class SyncQueryResponse extends QueryResponse {
 
-    private String results;
+	private String results;
 
-    public String getResults() {
-        return results;
-    }
+	public String getResults() {
+		return results;
+	}
 
-    public void setResults(String results) {
-        this.results = results;
-    }
+	public void setResults(String results) {
+		this.results = results;
+	}
 }

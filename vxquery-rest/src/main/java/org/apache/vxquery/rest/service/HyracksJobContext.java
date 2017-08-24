@@ -21,32 +21,33 @@ import org.apache.hyracks.api.dataset.ResultSetId;
 import org.apache.hyracks.api.job.JobId;
 
 /**
- * A class to map {@link ResultSetId} with {@link JobId} when a job is submitted to hyracks. This mapping will later be
- * used to determine the {@link JobId} instance of the corresponding {@link ResultSetId}
+ * A class to map {@link ResultSetId} with {@link JobId} when a job is submitted
+ * to hyracks. This mapping will later be used to determine the {@link JobId}
+ * instance of the corresponding {@link ResultSetId}
  *
  * @author Erandi Ganepola
  */
 public class HyracksJobContext {
 
-    private JobId jobId;
-    private int frameSize;
-    private ResultSetId resultSetId;
+	private JobId jobId;
+	private int frameSize;
+	private ResultSetId resultSetId;
 
-    public HyracksJobContext(JobId jobId, int frameSize, ResultSetId resultSetId) {
-        this.jobId = jobId;
-        this.frameSize = frameSize;
-        this.resultSetId = resultSetId;
-    }
+	public HyracksJobContext(JobId jobId, int frameSize, ResultSetId resultSetId) {
+		this.jobId = jobId;
+		this.frameSize = frameSize;
+		this.resultSetId = resultSetId;
+	}
 
-    public JobId getJobId() {
-        return jobId;
-    }
+	public JobId getJobId() {
+		return jobId;
+	}
 
-    public int getFrameSize() {
-        return frameSize;
-    }
+	public int getFrameSize() {
+		return frameSize;
+	}
 
-    public ResultSetId getResultSetId() {
-        return resultSetId;
-    }
+	public ResultSetId getResultSetId() {
+		return resultSetId;
+	}
 }

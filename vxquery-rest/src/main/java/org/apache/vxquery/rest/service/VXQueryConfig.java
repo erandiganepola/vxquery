@@ -18,82 +18,83 @@
 package org.apache.vxquery.rest.service;
 
 /**
- * A class to store default/user specified configurations required at runtime by the {@link VXQueryService} class. These
- * configuration will be loaded through a properties file.
+ * A class to store default/user specified configurations required at runtime by
+ * the {@link VXQueryService} class. These configuration will be loaded through
+ * a properties file.
  *
  * @author Erandi Ganepola
  */
 public class VXQueryConfig {
 
-    /** Number of available processors. (default: java's available processors) */
-    private int availableProcessors = Runtime.getRuntime().availableProcessors();
-    /** Setting frame size. (default: 65,536) */
-    private int frameSize = 65536;
-    /** Join hash size in bytes. (default: 67,108,864) */
-    private long joinHashSize = -1;
-    /** Maximum possible data size in bytes. (default: 150,323,855,000) */
-    private long maximumDataSize = -1;
-    /** Directory path to Hadoop configuration files */
-    private String hdfsConf = null;
+	/** Number of available processors. (default: java's available processors) */
+	private int availableProcessors = Runtime.getRuntime().availableProcessors();
+	/** Setting frame size. (default: 65,536) */
+	private int frameSize = 65536;
+	/** Join hash size in bytes. (default: 67,108,864) */
+	private long joinHashSize = -1;
+	/** Maximum possible data size in bytes. (default: 150,323,855,000) */
+	private long maximumDataSize = -1;
+	/** Directory path to Hadoop configuration files */
+	private String hdfsConf = null;
 
-    private String hyracksClientIp;
-    private int hyracksClientPort;
+	private String hyracksClientIp;
+	private int hyracksClientPort;
 
-    public int getAvailableProcessors() {
-        return availableProcessors;
-    }
+	public int getAvailableProcessors() {
+		return availableProcessors;
+	}
 
-    public void setAvailableProcessors(int availableProcessors) {
-        if (availableProcessors > 0) {
-            this.availableProcessors = availableProcessors;
-        }
-    }
+	public void setAvailableProcessors(int availableProcessors) {
+		if (availableProcessors > 0) {
+			this.availableProcessors = availableProcessors;
+		}
+	}
 
-    public long getJoinHashSize() {
-        return joinHashSize;
-    }
+	public long getJoinHashSize() {
+		return joinHashSize;
+	}
 
-    public void setJoinHashSize(long joinHashSize) {
-        this.joinHashSize = joinHashSize;
-    }
+	public void setJoinHashSize(long joinHashSize) {
+		this.joinHashSize = joinHashSize;
+	}
 
-    public long getMaximumDataSize() {
-        return maximumDataSize;
-    }
+	public long getMaximumDataSize() {
+		return maximumDataSize;
+	}
 
-    public void setMaximumDataSize(long maximumDataSize) {
-        this.maximumDataSize = maximumDataSize;
-    }
+	public void setMaximumDataSize(long maximumDataSize) {
+		this.maximumDataSize = maximumDataSize;
+	}
 
-    public String getHdfsConf() {
-        return hdfsConf;
-    }
+	public String getHdfsConf() {
+		return hdfsConf;
+	}
 
-    public void setHdfsConf(String hdfsConf) {
-        this.hdfsConf = hdfsConf;
-    }
+	public void setHdfsConf(String hdfsConf) {
+		this.hdfsConf = hdfsConf;
+	}
 
-    public int getHyracksClientPort() {
-        return hyracksClientPort;
-    }
+	public int getHyracksClientPort() {
+		return hyracksClientPort;
+	}
 
-    public void setHyracksClientPort(int hyracksClientPort) {
-        this.hyracksClientPort = hyracksClientPort;
-    }
+	public void setHyracksClientPort(int hyracksClientPort) {
+		this.hyracksClientPort = hyracksClientPort;
+	}
 
-    public String getHyracksClientIp() {
-        return hyracksClientIp;
-    }
+	public String getHyracksClientIp() {
+		return hyracksClientIp;
+	}
 
-    public void setHyracksClientIp(String hyracksClientIp) {
-        this.hyracksClientIp = hyracksClientIp;
-    }
+	public void setHyracksClientIp(String hyracksClientIp) {
+		this.hyracksClientIp = hyracksClientIp;
+	}
 
-    public int getFrameSize() {
-        return frameSize;
-    }
+	public int getFrameSize() {
+		return frameSize;
+	}
 
-    public void setFrameSize(int frameSize) {
-        this.frameSize = frameSize;
-    }
+	public void setFrameSize(int frameSize) {
+		this.frameSize = frameSize;
+	}
 }

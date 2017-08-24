@@ -23,8 +23,5 @@ package org.apache.vxquery.rest.service;
  * @author Erandi Ganepola
  */
 public enum State {
-    STARTING,
-    STARTED,
-    STOPPING,
-    STOPPED
+	STARTING, STARTED, STOPPING, STOPPED
 }
